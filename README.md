@@ -1,8 +1,9 @@
 # Drydock
 
-In-game dashboard for FFXIV submarines. I run a lot of subs across a lot of
-characters and got tired of piecing it together from three different plugins,
-so this pulls it into one window.
+In-game dashboard for FFXIV submarines. Inspired from the massive spreadsheets
+many players with big fleets use to keep track of data. Compiles data from
+several other plugins then makes it readable.
+
 
 ![Overview](docs/overview.png)
 
