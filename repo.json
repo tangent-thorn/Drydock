@@ -10,6 +10,11 @@
     "ApplicableVersion": "any",
     "RepoUrl": "https://github.com/tangent-thorn/Drydock",
     "IconUrl": "https://raw.githubusercontent.com/tangent-thorn/Drydock/main/Drydock/images/icon.png",
+    "ImageUrls": [
+      "https://raw.githubusercontent.com/tangent-thorn/Drydock/main/docs/installer/overview.png",
+      "https://raw.githubusercontent.com/tangent-thorn/Drydock/main/docs/installer/salvage.png",
+      "https://raw.githubusercontent.com/tangent-thorn/Drydock/main/docs/installer/projection.png"
+    ],
     "Tags": [
       "submarines",
       "dashboard",
