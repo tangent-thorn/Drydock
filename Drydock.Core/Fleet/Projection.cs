@@ -34,7 +34,8 @@ public sealed record ProjectionResult(
 public static class ProjectionMath
 {
     public const int HorizonDays = 365;
-    public const long MilestoneStep = 250_000_000;
+    public const long DefaultMilestoneStep = 250_000_000;
+    public const long MinMilestoneStep = 10_000_000; // smaller fills the Projection list with hundreds of rows
     public const long DefaultTarget = 1_000_000_000;
     public const long MinTarget = 1_000_000;
     public const long MaxTarget = 1_000_000_000_000;
@@ -52,6 +53,7 @@ public static class ProjectionMath
     /// <param name="totalHulls">All hulls; the steady rate assumes every one farms.</param>
     /// <param name="perDay">Production per day over 30 days, unrounded.</param>
     /// <param name="upkeepDay">Upkeep per day now, unrounded.</param>
+    /// <param name="milestoneStep">The gap between milestones: the setting, 250M unless changed.</param>
     public static ProjectionResult Compute(
         double position,
         int farming,
@@ -64,12 +66,14 @@ public static class ProjectionMath
         double perDay,
         double upkeepDay,
         long target,
-        DateOnly today)
+        DateOnly today,
+        long milestoneStep = DefaultMilestoneStep)
     {
+        var step = Math.Max(milestoneStep, MinMilestoneStep);
         var nLvl = levellingEtaDays.Count;
         var curve = new List<ProjectionPoint> { new(today, Round(position), farming) };
         var milestones = new List<ProjectionMilestone>();
-        var nextMs = ((long)Math.Floor(position / MilestoneStep) + 1) * MilestoneStep;
+        var nextMs = ((long)Math.Floor(position / step) + 1) * step;
         var g = position;
         int? hitDay = null;
         DateOnly? hit = null;
@@ -90,12 +94,13 @@ public static class ProjectionMath
             while (g >= nextMs)
             {
                 milestones.Add(new(nextMs, d, day));
-                if (nextMs == target)
-                {
-                    hit = d;
-                    hitDay = day;
-                }
-                nextMs += MilestoneStep;
+                nextMs += step;
+            }
+            // the target need not sit on a milestone once the step is a setting
+            if (hitDay is null && position < target && g >= target)
+            {
+                hit = d;
+                hitDay = day;
             }
             if ((day <= 60 && day % 2 == 0) || (day > 60 && day % 7 == 0))
                 curve.Add(new(d, Round(g), ne));

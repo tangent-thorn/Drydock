@@ -13,10 +13,10 @@ PC and its own small database next to them. No network calls, no telemetry.
 What's in it:
 
 - **Overview**: cards for salvage today (with the last two weeks), how many
-  hulls are farming, how many are back, and where you stand against the next
-  250M. A timeline of everything coming back in the next 24 hours, how many
-  days of ceruleum and kits the fleet has left, the characters lowest on
-  kits, and warnings for anyone gone quiet or running low. Uses your Dalamud
+  subs are farming, how many are back, and where you stand against your next
+  defined milestone. A timeline of everything coming back in the next 24
+  hours, how many days of ceruleum and kits the fleet has left, the characters
+  lowest on kits, and warnings for characters running low. Uses your Dalamud
   theme colours.
 - **Fleet**: every sub grouped by FC, with rank, route and a live countdown
   to when it's back.
@@ -42,7 +42,8 @@ What's in it:
 - **Projection**: where your gil is headed over the next year, with hulls
   that are still levelling joining the farm on their worst-case date. When
   you hit your gil target (1B unless you change it), where you land at one,
-  three, six and twelve months, every 250M milestone, and what you make now
+  three, six and twelve months, every milestone (250M apart unless you
+  change it), and what you make now
   against what you'll make once every hull is farming.
 - **Tracking**: what Drydock is reading per character (subs, voyages today,
   days since the last one, ceruleum, kits). Untick a character to leave it
@@ -93,7 +94,8 @@ If something's missing, `/drydock setup` tells you what and links the installer.
 
 Settings has the warning limits (days quiet, low ceruleum, low kits), when
 data counts as stale, the info bar toggle, how often you resend subs
-(for the levelling dates), and fuel and kit prices and usage per sector for
-the upkeep numbers.
+(for the levelling dates), fuel and kit prices and usage per sector for
+the upkeep numbers, and the gil target and milestone step for the
+projection.
 
 AGPL-3.0.

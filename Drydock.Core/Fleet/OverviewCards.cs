@@ -17,7 +17,7 @@ public sealed record SalvageCard(string Value, string? Reason, string? Compare, 
 
 public sealed record FarmingCard(string Value, string? Reason, float Fraction, string Pct, string? Routes, string? Levelling);
 
-/// <param name="Fraction">How far the position is from the last 250M milestone to the next.</param>
+/// <param name="Fraction">How far the position is from the last milestone to the next (the milestone step setting).</param>
 public sealed record PositionCard(string Value, string? Reason, string? Parts, float Fraction, string? Next);
 
 /// <param name="Fraction">The runway against the panel's shared scale; 0 when unknown.</param>
@@ -97,8 +97,9 @@ public static class OverviewMath
         whole > 0 ? (float)Math.Clamp(part / whole, 0, 1) : 0f;
 
     /// <summary>The milestone below the position, the next one up and how far along the step it is; the same steps the projection uses.</summary>
-    public static (long Floor, long Next, float Fraction) Milestone(long position, long step = ProjectionMath.MilestoneStep)
+    public static (long Floor, long Next, float Fraction) Milestone(long position, long step = ProjectionMath.DefaultMilestoneStep)
     {
+        step = Math.Max(step, ProjectionMath.MinMilestoneStep);
         var floor = (long)Math.Floor((double)position / step) * step;
         return (floor, floor + step, Fraction(position - floor, step));
     }
@@ -169,7 +170,7 @@ public static class OverviewCards
             Salvage(tileEconomics, tileEconomicsReason, today),
             Farming(subs, farmingCount),
             known.Count == 0 ? null : N(known.Sum(c => c.SentToday!.Value)) + " sent today",
-            Position(gilGate, holdings, backlogReason, projection, today),
+            Position(gilGate, holdings, backlogReason, projection, today, s.MilestoneStep),
             Supplies(counted, s, tileEconomics, tileEconomicsReason, suppliesNote),
             rows,
             N(rows.Count));
@@ -224,14 +225,15 @@ public static class OverviewCards
         return byRoute.Count > 3 ? $"{shown} · {byRoute.Count - 3} more" : shown;
     }
 
-    public static PositionCard Position(TabGate gilGate, HoldingsSummary? h, string? backlogReason, ProjectionResult? projection, DateOnly today)
+    public static PositionCard Position(TabGate gilGate, HoldingsSummary? h, string? backlogReason, ProjectionResult? projection, DateOnly today,
+        long milestoneStep = ProjectionMath.DefaultMilestoneStep)
     {
         if (!gilGate.IsOpen || h is null) return new("-", TabGates.TileReason(gilGate) ?? "reading", null, 0, null);
         if (h.NoLiquidData) return new("-", "AutoRetainer carries no gil figure", null, 0, null);
         if (!h.LiquidKnown) return new("-", $"needs the gil figures, {h.Unread} not read", null, 0, null);
 
         var g = SalvageMath.FormatGil;
-        var (_, next, fraction) = OverviewMath.Milestone(h.Position);
+        var (_, next, fraction) = OverviewMath.Milestone(h.Position, milestoneStep);
         string nextText;
         if (projection is null)
             nextText = $"next {g(next)}";

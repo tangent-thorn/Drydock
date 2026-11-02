@@ -17,7 +17,8 @@ public sealed record ViewSettings(
     int KitPrice,
     double FuelPerSector,
     double KitsPerSector,
-    bool UseMeasuredRates)
+    bool UseMeasuredRates,
+    long MilestoneStep = ProjectionMath.DefaultMilestoneStep)
 {
     public WarningThresholds Thresholds => new(SilentDays, LowCeruleum, LowRepairKits, RunwayDays);
 }
@@ -304,7 +305,7 @@ public static class SnapshotBuilder
         var m = e.Model;
         var result = ProjectionMath.Compute(
             position, farming, etas, m.PerHull, m.SecPerEnd, m.SecPerLvl, m.CostPerSector,
-            farming + etas.Count, m.PerDay, m.UpkeepDay, s.GilTarget, today);
+            farming + etas.Count, m.PerDay, m.UpkeepDay, s.GilTarget, today, s.MilestoneStep);
 
         var values = result.Curve.Select(c => (float)c.Value).ToArray();
         var overlay = $"{DateLabels.Range(result.Curve[0].Date, result.Curve[^1].Date, today)}, {g(values.Min())} to {g(values.Max())}";

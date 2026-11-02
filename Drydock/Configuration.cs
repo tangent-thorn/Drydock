@@ -40,6 +40,9 @@ public class Configuration : IPluginConfiguration
     /// <summary>The position the Projection tab counts to.</summary>
     public long GilTarget { get; set; } = 1_000_000_000; // 1B, the number everyone ends up asking about
 
+    /// <summary>The gap between milestones on the Overview card and the Projection tab.</summary>
+    public long MilestoneStep { get; set; } = ProjectionMath.DefaultMilestoneStep;
+
     /// <summary>"Name@World" of characters unticked on the Tracking tab.</summary>
     public HashSet<string> ExcludedCharacters { get; set; } = [];
 
@@ -60,6 +63,7 @@ public class Configuration : IPluginConfiguration
         KitsPerSector = ConfigLimits.Double(KitsPerSector, 0, 1000, 0.872);
         RunwayDays = ConfigLimits.Int(RunwayDays, 1, 365);
         GilTarget = ConfigLimits.Long(GilTarget, ProjectionMath.MinTarget, ProjectionMath.MaxTarget);
+        MilestoneStep = ConfigLimits.Long(MilestoneStep, ProjectionMath.MinMilestoneStep, ProjectionMath.MaxTarget);
         ExcludedCharacters ??= [];
     }
 }

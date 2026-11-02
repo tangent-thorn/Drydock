@@ -78,6 +78,9 @@ public sealed class ConfigWindow : Window
         {
             Double("Gil target", configuration.GilTarget, ProjectionMath.MinTarget, ProjectionMath.MaxTarget, "%.0f",
                 v => configuration.GilTarget = (long)v);
+            Double("Milestone step", configuration.MilestoneStep, ProjectionMath.MinMilestoneStep, ProjectionMath.MaxTarget, "%.0f",
+                v => configuration.MilestoneStep = (long)v);
+            ImGui.TextDisabled("The gap between milestones, 250,000,000 by default: the Overview's next milestone and the Projection's list.");
         }
     }
 
