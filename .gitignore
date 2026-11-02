@@ -1,0 +1,9 @@
+bin/
+obj/
+.vs/
+.idea/
+*.user
+*.suo
+# Dalamud dev files and downloads never belong in the repo
+latest.zip
+dalamud-dev/
