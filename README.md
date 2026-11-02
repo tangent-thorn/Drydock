@@ -4,6 +4,8 @@ In-game dashboard for FFXIV submarines. I run a lot of subs across a lot of
 characters and got tired of piecing it together from three different plugins,
 so this pulls it into one window.
 
+![Overview](docs/overview.png)
+
 What's in it:
 
 - **Overview**: cards for salvage today (with the last two weeks), how many
@@ -52,6 +54,15 @@ JOZ, MROJ, MOJZ, JORZ, MROJZ, RZVOJ, MRVOJ), whatever its rank.
 Heads up: on a fresh install the fuel and kit numbers are the defaults in
 settings until Drydock has a few days of its own history to measure them.
 Still keeping an eye on how close those land.
+
+## Screenshots
+
+Names swapped out, numbers are my real fleet.
+
+| | |
+|---|---|
+| ![Fleet](docs/fleet.png) | ![Salvage](docs/salvage.png) |
+| ![Gil](docs/gil.png) | ![Projection](docs/projection.png) |
 
 ## Install
 
