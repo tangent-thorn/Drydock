@@ -1,0 +1,30 @@
+<Project Sdk="Dalamud.NET.Sdk/15.0.0">
+
+  <PropertyGroup>
+    <Version>1.0.0.0</Version>
+    <!-- Manifest fields live in Drydock.json next to this file. -->
+    <RootNamespace>Drydock</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Drydock.Core\Drydock.Core.csproj" />
+  </ItemGroup>
+
+  <!-- The icon lives in images/ next to the manifest, where DalamudPackager looks for it;
+       the installer loads it from IconUrl in Drydock.json and repo.json. -->
+  <ItemGroup>
+    <Content Include="images\icon.png" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!--
+    sqlite through Windows' own winsqlite3.dll (System32), so the package ships no native
+    library. A native DLL loaded from the plugin folder cannot be unloaded, which locked the
+    folder and broke updating 0.1.0 until the game restarted.
+  -->
+  <ItemGroup>
+    <!-- The winsqlite3 provider stops at 2.1.11; it runs on the 2.1.x core Microsoft.Data.Sqlite.Core brings. -->
+    <PackageReference Include="SQLitePCLRaw.provider.winsqlite3" Version="2.1.11" />
+  </ItemGroup>
+
+</Project>

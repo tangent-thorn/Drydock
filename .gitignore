@@ -1,0 +1,11 @@
+bin/
+obj/
+.vs/
+.idea/
+*.user
+*.suo
+TestResults/
+# Dalamud dev files and downloads never belong in the repo
+latest.zip
+dalamud-dev/
+Drydock.Tests/

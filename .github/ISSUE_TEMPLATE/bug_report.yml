@@ -1,0 +1,43 @@
+name: Bug report
+description: Something shows wrong numbers, breaks, or crashes
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Please blur or cut character and retainer names out of anything you paste here.
+  - type: input
+    id: version
+    attributes:
+      label: Drydock version
+      description: From /xlplugins
+      placeholder: 1.0.0
+    validations:
+      required: true
+  - type: checkboxes
+    id: plugins
+    attributes:
+      label: Plugins installed and enabled
+      options:
+        - label: AutoRetainer
+        - label: Submarine Tracker
+        - label: Allagan Tools
+        - label: CashFlow
+  - type: dropdown
+    id: tab
+    attributes:
+      label: Where
+      options: [Overview, Fleet, Levelling, Salvage, Gil, History, Projection, Tracking, Setup window, Settings, Info bar, Other]
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what you expected
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: /xllog lines
+      description: Filter on Drydock, names removed
+      render: text

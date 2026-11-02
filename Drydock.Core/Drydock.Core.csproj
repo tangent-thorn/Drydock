@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>Drydock.Core</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- No native library here: the plugin uses Windows' own winsqlite3, the tests a bundled e_sqlite3. -->
+    <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="10.0.14" />
+  </ItemGroup>
+
+</Project>
