@@ -728,6 +728,9 @@ public sealed class MainWindow : Window
     private static string Range(long lo, long hi, string format) =>
         lo == hi ? lo.ToString(format, CultureInfo.InvariantCulture) : lo.ToString(format, CultureInfo.InvariantCulture) + "-" + hi.ToString(format, CultureInfo.InvariantCulture);
 
+    private static string Dates(DateOnly best, DateOnly worst, DateOnly today) =>
+        best == worst ? DateLabels.Short(best, today) : DateLabels.Short(best, today) + " - " + DateLabels.Short(worst, today);
+
     private void DrawLevelling(StatusSnapshot snap)
     {
         DrawStale(snap, PluginRequirements.AutoRetainer, PluginRequirements.SubmarineTracker);
@@ -776,7 +779,17 @@ public sealed class MainWindow : Window
                         ImGui.TextUnformatted(e.Rank.ToString());
                         ImGui.TableNextColumn();
                         ImGui.TextUnformatted(e.RouteLabel.Length == 0 ? "-" : e.RouteLabel);
-                        if (e.Estimate is not { } est)
+                        if (e.Estimate is { } est)
+                        {
+                            ImGui.TableNextColumn();
+                            ImGui.TextUnformatted(est.VoyageHours.ToString("0.0", CultureInfo.InvariantCulture) + " h");
+                            ImGui.TableNextColumn();
+                            ImGui.TextUnformatted(est.CycleHours.ToString("0.0", CultureInfo.InvariantCulture) + " h "
+                                + est.CycleSource switch { CycleSource.Measured => "measured", CycleSource.Cadence => "cadence", _ => "voyage" });
+                            ImGui.TableNextColumn();
+                            ImGui.TextUnformatted(Range(est.ExpWorst, est.ExpBest, "N0"));
+                        }
+                        else
                         {
                             ImGui.TableNextColumn();
                             ImGui.TextDisabled("-");
@@ -784,29 +797,34 @@ public sealed class MainWindow : Window
                             ImGui.TextDisabled("-");
                             ImGui.TableNextColumn();
                             ImGui.TextDisabled(e.Problem ?? "-");
-                            ImGui.TableNextColumn();
-                            ImGui.TextDisabled("-");
-                            ImGui.TableNextColumn();
-                            ImGui.TextDisabled("-");
-                            continue;
                         }
                         ImGui.TableNextColumn();
-                        ImGui.TextUnformatted(est.VoyageHours.ToString("0.0", CultureInfo.InvariantCulture) + " h");
-                        ImGui.TableNextColumn();
-                        ImGui.TextUnformatted(est.CycleHours.ToString("0.0", CultureInfo.InvariantCulture) + " h "
-                            + est.CycleSource switch { CycleSource.Measured => "measured", CycleSource.Cadence => "cadence", _ => "voyage" });
-                        ImGui.TableNextColumn();
-                        ImGui.TextUnformatted(Range(est.ExpWorst, est.ExpBest, "N0"));
-                        ImGui.TableNextColumn();
-                        ImGui.TextUnformatted(est is { DaysBest: { } db, DaysWorst: { } dw } ? Range(db, dw, "0") : "-");
-                        ImGui.TableNextColumn();
-                        ImGui.TextUnformatted(est is { EtaBest: { } eb, EtaWorst: { } ew }
-                            ? (eb == ew ? DateLabels.Short(eb, today) : DateLabels.Short(eb, today) + " - " + DateLabels.Short(ew, today))
-                            : "-");
+                        if (e.Typical is { } t)
+                        {
+                            ImGui.TextUnformatted(Range(t.DaysBest, t.DaysWorst, "0") + " *");
+                            if (ImGui.IsItemHovered())
+                                ImGui.SetTooltip("Typical for a sub at this rank that moves to better routes as it levels.\nThe current route on its own would take longer.");
+                            ImGui.TableNextColumn();
+                            ImGui.TextUnformatted(Dates(t.EtaBest, t.EtaWorst, today));
+                        }
+                        else if (e.Estimate is { DaysBest: { } db, DaysWorst: { } dw, EtaBest: { } eb, EtaWorst: { } ew })
+                        {
+                            ImGui.TextUnformatted(Range(db, dw, "0"));
+                            ImGui.TableNextColumn();
+                            ImGui.TextUnformatted(Dates(eb, ew, today));
+                        }
+                        else
+                        {
+                            ImGui.TextDisabled("-");
+                            ImGui.TableNextColumn();
+                            ImGui.TextDisabled("-");
+                        }
                     }
                 }
             }
-            ImGui.TextDisabled("Assumes the hull stays on its current route; a route change resets the estimate.");
+            ImGui.TextDisabled("Days without * assume the sub stays on its current route; a route change resets the estimate.");
+            if (entries.Any(x => x.Typical is not null))
+                ImGui.TextDisabled("Days with * are typical for a sub at that rank that moves to better routes as it levels, measured from 68 subs levelled from rank 1.");
         }
 
         ImGui.Spacing();
@@ -875,12 +893,14 @@ public sealed class MainWindow : Window
             }
         }
 
-        if (tracking.Phantoms.Count > 0)
+        if (tracking.Phantoms.Count > 0 || snap.OldCompanies.Count > 0)
         {
             ImGui.Spacing();
             ImGui.TextUnformatted("Ignored entries");
             foreach (var p in tracking.Phantoms)
                 ImGui.TextDisabled($"{p.Character}: {p.Entry} (in AutoRetainer, not in Submarine Tracker)");
+            foreach (var o in snap.OldCompanies)
+                ImGui.TextDisabled($"{o.Character}: {(o.Tag.Length > 0 ? "FC <" + o.Tag + ">" : "an old FC")} with {o.Submarines} sub{(o.Submarines == 1 ? "" : "s")} (Submarine Tracker remembers it, the character is in another FC now; its loot still counts)");
         }
     }
 

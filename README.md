@@ -24,7 +24,10 @@ What's in it:
   voyage time, EXP per voyage, and a best to worst range for the days left
   to your target rank (85 unless you change it) and the dates. It works off
   the game's own EXP table and each sub's real parts and route, and uses
-  how often you actually resend it. Plus a rough rank spread of the fleet.
+  how often you actually resend it. Early subs that would take forever on
+  their current route get a typical range instead (marked *), from 68 real
+  subs levelled from rank 1 while moving to better routes. Plus a rough
+  rank spread of the fleet.
 - **Salvage**: salvage today and yesterday, the 30 and 7 day average with
   the trend, per sub per day, a 90 day chart, what fuel and kits cost you
   per day, net, and how many days of ceruleum and kits you have left. Per
@@ -49,7 +52,8 @@ What's in it:
   days since the last one, ceruleum, kits). Untick a character to leave it
   out of everything. Every AutoRetainer character is listed, subs or not.
   Subs AutoRetainer still remembers but that don't exist anymore are listed
-  there too, so you know why they're ignored.
+  there too, so you know why they're ignored, and so are FCs Submarine
+  Tracker remembers for a character who has since moved to another FC.
 - A server info bar entry: "Subs 3 back, next in 1h 12m". Click it to open
   Drydock, or turn it off in settings.
 

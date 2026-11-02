@@ -23,6 +23,9 @@ public sealed record SubmarineRow(string Name, int Rank, DateTime ReturnUtc, uin
 
 public sealed record FreeCompanyFleet(string CharacterName, string Tag, string World, IReadOnlyList<SubmarineRow> Submarines)
 {
+    /// <summary>The game's FC id, the same number AutoRetainer keeps as a character's FCID; 0 when it could not be read.</summary>
+    public ulong FcId { get; init; }
+
     public DateTime NextReturnUtc => Submarines.Count == 0 ? DateTime.MaxValue : Submarines[0].ReturnUtc;
 }
 
@@ -75,14 +78,15 @@ public static class SubmarineTrackerDb
                 {(hasCompanies ? "left join freecompany f on f.FreeCompanyId = s.FreeCompanyId" : "")}
                 """;
 
-            var groups = new Dictionary<string, (string Character, string Tag, string World, List<SubmarineRow> Subs)>();
+            var groups = new Dictionary<string, (string Character, string Tag, string World, ulong FcId, List<SubmarineRow> Subs)>();
             using var r = cmd.ExecuteReader();
             while (r.Read())
             {
-                var id = r[0] is byte[] idBytes ? Convert.ToHexString(idBytes) : "";
+                var idBytes = r[0] as byte[];
+                var id = idBytes is null ? "" : Convert.ToHexString(idBytes);
                 if (!groups.TryGetValue(id, out var g))
                 {
-                    g = (Str(r, 6, "?"), Str(r, 7, ""), Str(r, 8, ""), []);
+                    g = (Str(r, 6, "?"), Str(r, 7, ""), Str(r, 8, ""), idBytes is null ? 0 : DecodeUInt(idBytes), []);
                     groups[id] = g;
                 }
                 g.Subs.Add(new SubmarineRow(
@@ -101,7 +105,7 @@ public static class SubmarineTrackerDb
                 });
             }
 
-            return (new(OrderFleets(groups.Values.Select(g => new FreeCompanyFleet(g.Character, g.Tag, g.World, g.Subs))), null), null);
+            return (new(OrderFleets(groups.Values.Select(g => new FreeCompanyFleet(g.Character, g.Tag, g.World, g.Subs) { FcId = g.FcId })), null), null);
         }
         catch (Exception ex)
         {
@@ -192,6 +196,17 @@ public static class SubmarineTrackerDb
         using var r = cmd.ExecuteReader();
         while (r.Read()) set.Add(r.GetString(0));
         return set;
+    }
+
+    /// <summary>A MessagePack unsigned integer (fixint, uint8 to uint64), as Submarine Tracker stores the FC id; 0 for anything else.</summary>
+    public static ulong DecodeUInt(byte[] b)
+    {
+        if (b.Length == 1 && b[0] < 0x80) return b[0];
+        var size = b.Length == 0 ? 0 : b[0] switch { 0xcc => 1, 0xcd => 2, 0xce => 4, 0xcf => 8, _ => 0 };
+        if (size == 0 || b.Length != size + 1) return 0;
+        ulong v = 0;
+        for (var i = 1; i <= size; i++) v = (v << 8) | b[i];
+        return v;
     }
 
     private static long Long(SqliteDataReader r, int i) => r.IsDBNull(i) ? 0 : r.GetInt64(i);
