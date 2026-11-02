@@ -5,7 +5,7 @@
     "InternalName": "Drydock",
     "AssemblyVersion": "1.0.1.0",
     "TestingAssemblyVersion": null,
-    "Description": "Fleet status, return timers, levelling progress, salvage income and restock needs for every submarine across your characters.\n\nRequires AutoRetainer and Submarine Tracker. Allagan Tools and CashFlow add salvage and gil tracking.",
+    "Description": "Fleet status, return timers, levelling progress, salvage income and restock needs for every submarine across your characters.\n\nRequires AutoRetainer (custom repo: https://love.puni.sh/ment.json) and Submarine Tracker. Allagan Tools and CashFlow add salvage and gil tracking.",
     "Punchline": "Fleet status, return timers, levelling progress, salvage income and restock needs for every submarine across your characters.",
     "ApplicableVersion": "any",
     "RepoUrl": "https://github.com/tangent-thorn/Drydock",

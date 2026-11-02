@@ -99,7 +99,7 @@ public sealed class SetupWindow : Window
                 ImGui.TableSetupColumn("Plugin", ImGuiTableColumnFlags.WidthFixed, S(150));
                 ImGui.TableSetupColumn("Why", ImGuiTableColumnFlags.WidthStretch, 3);
                 ImGui.TableSetupColumn("Status", ImGuiTableColumnFlags.WidthStretch, 3);
-                ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed, S(170));
+                ImGui.TableSetupColumn("Actions", ImGuiTableColumnFlags.WidthFixed, S(230));
                 ImGui.TableHeadersRow();
 
                 foreach (var r in results)
@@ -127,8 +127,12 @@ public sealed class SetupWindow : Window
 
                     ImGui.TableNextColumn();
                     var id = r.Requirement.InternalName;
-                    if (r.Requirement.RepoUrl is { } url && ImGui.Button($"Copy repo URL##{id}"))
-                        ImGui.SetClipboardText(url);
+                    if (r.Requirement.RepoUrl is { } url)
+                    {
+                        ImGui.TextDisabled(r.Requirement.Source);
+                        ImGui.TextUnformatted(url);
+                        if (ImGui.Button($"Copy repo URL##{id}")) ImGui.SetClipboardText(url);
+                    }
                     if (r.Status != PluginStatus.Ready && ImGui.Button($"Open plugin installer##{id}"))
                         Plugin.PluginInterface.OpenPluginInstallerTo(PluginInstallerOpenKind.AllPlugins, r.Requirement.DisplayName);
                 }
