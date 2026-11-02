@@ -126,6 +126,9 @@ public sealed record StatusSnapshot(long Version, DateOnly Today, SourceInputs I
     public string? BacklogByCharacterNote { get; init; }
     public IReadOnlyList<string> TrackingNotes { get; init; } = [];
 
+    /// <summary>FCs Submarine Tracker remembers for characters now in another FC; their subs count nowhere.</summary>
+    public IReadOnlyList<OldCompany> OldCompanies { get; init; } = [];
+
     public HoldingsSummary? Holdings { get; init; }
     public LevellingView? Levelling { get; init; }
     public ProjectionView? Projection { get; init; }
@@ -144,8 +147,18 @@ public static class SnapshotBuilder
             ? FleetTracking.JoinAll(fleet?.Fleets, characters, FleetTracking.DayKey(today, zone))
             : null;
 
-    public static StatusSnapshot Build(SourceInputs inputs, ViewSettings s, long version, DateTime nowUtc, TimeZoneInfo zone)
+    public static StatusSnapshot Build(SourceInputs raw, ViewSettings s, long version, DateTime nowUtc, TimeZoneInfo zone)
     {
+        // subs of an FC the character has since left are not part of any figure; their loot still counts, it was earned
+        IReadOnlyList<OldCompany> oldCompanies = [];
+        var inputs = raw;
+        if (raw.Fleet?.Fleets is { } all)
+        {
+            var (current, old) = OldCompanies.Split(all, raw.AutoRetainer?.Characters);
+            oldCompanies = old;
+            if (old.Count > 0) inputs = raw with { Fleet = raw.Fleet with { Fleets = current } };
+        }
+
         var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(nowUtc, zone));
         var excluded = s.Excluded;
         var results = inputs.Results;
@@ -198,8 +211,9 @@ public static class SnapshotBuilder
         var projection = gates.Projection.IsOpen ? ProjectionOf(reads, s, economics!, holdings, backlog, plan, today, g) : null;
         var tileReason = TabGates.TileReason(gates.Loot) ?? (tileEconomics is null ? "reading" : null);
         var suppliesNote = TabGates.SuppliesNote(reads);
-        return new StatusSnapshot(version, today, inputs, s, reads)
+        return new StatusSnapshot(version, today, raw, s, reads)
         {
+            OldCompanies = oldCompanies,
             Gates = gates,
             StaleNotes = stale,
             RefreshedText = inputs.LastRefreshLocal is { } last ? $"refreshed {last:HH:mm:ss}" : "not refreshed",
@@ -264,11 +278,11 @@ public static class SnapshotBuilder
     {
         var entries = plan.Entries;
         var expUnknown = entries.Count(x => x.ExpUnknown);
-        var late = entries.Where(e => e.Estimate?.EtaWorst is not null).Select(e => e.Estimate!.EtaWorst!.Value).ToList();
+        var late = entries.Where(e => e.EtaWorst is not null).Select(e => e.EtaWorst!.Value).ToList();
         return new LevellingView(
             plan,
             expUnknown,
-            entries.Count(e => e.Estimate is null),
+            entries.Count(e => e.Estimate is null && e.Typical is null),
             late.Count > 0 ? late.Max() : null,
             TabGates.LevellingFallbackNote(results, expUnknown),
             subs.Count(x => x.Rank < 50),
@@ -300,7 +314,7 @@ public static class SnapshotBuilder
         // worst-case ETA on purpose. if it's off, the hull starts farming early, which is the better way to be wrong.
         // TODO: maybe draw the best case as a second line once the ranges have a week of history to check against
         var etas = plan is not null
-            ? plan.Entries.Select(x => x.Estimate?.DaysWorst is { } d ? (double)d : double.PositiveInfinity).ToList()
+            ? plan.Entries.Select(x => x.DaysWorst is { } d ? (double)d : double.PositiveInfinity).ToList()
             : Enumerable.Repeat(double.PositiveInfinity, subs.Count - farming).ToList();
         var m = e.Model;
         var result = ProjectionMath.Compute(

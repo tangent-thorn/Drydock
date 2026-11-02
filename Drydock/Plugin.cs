@@ -130,7 +130,7 @@ public sealed class Plugin : IDalamudPlugin
         if (disposed) return;
         try
         {
-            var view = FleetSummary.InfoBar(Configuration.ShowInfoBar, Status.Results, Status.Fleet, Configuration.ExcludedCharacters, DateTime.UtcNow);
+            var view = FleetSummary.InfoBar(Configuration.ShowInfoBar, Status.Results, Status.Snapshot.Reads.Fleet, Configuration.ExcludedCharacters, DateTime.UtcNow);
             var change = infoBarState.Next(view);
             if (change.SetText) infoBar.Text = view.Text!;
             if (change.SetTooltip) infoBar.Tooltip = view.Tooltip;

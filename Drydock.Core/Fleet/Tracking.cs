@@ -130,6 +130,36 @@ public static class FleetTracking
     }
 }
 
+/// <summary>An FC Submarine Tracker still remembers for a character who is now in another FC.</summary>
+public sealed record OldCompany(string Character, string Tag, string World, int Submarines);
+
+public static class OldCompanies
+{
+    /// <summary>
+    /// Splits off the FCs whose character is now in another one. Submarine Tracker never forgets an FC, so after a
+    /// character leaves or remakes one its old subs would otherwise count as live. Only an FC whose character
+    /// AutoRetainer knows, with a different non-zero FCID, counts as old; anything unknown stays.
+    /// </summary>
+    public static (IReadOnlyList<FreeCompanyFleet> Current, IReadOnlyList<OldCompany> Old) Split(
+        IReadOnlyList<FreeCompanyFleet> fleets, IReadOnlyList<AutoRetainerCharacter>? ar)
+    {
+        if (ar is null || ar.Count == 0) return (fleets, []);
+        var fcByName = new Dictionary<string, ulong>(StringComparer.Ordinal);
+        foreach (var c in ar) fcByName.TryAdd(c.Name, c.Fcid);
+
+        var current = new List<FreeCompanyFleet>();
+        var old = new List<OldCompany>();
+        foreach (var f in fleets)
+        {
+            if (f.FcId != 0 && fcByName.TryGetValue(f.CharacterName, out var now) && now != 0 && now != f.FcId)
+                old.Add(new OldCompany(f.CharacterName, f.Tag, f.World, f.Submarines.Count));
+            else
+                current.Add(f);
+        }
+        return old.Count == 0 ? (fleets, []) : (current, old);
+    }
+}
+
 public static class CharacterFilter
 {
     public static string Key(string name, string world) => name + "@" + world;

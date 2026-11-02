@@ -30,7 +30,19 @@ public sealed record LevellingEntry(string Character, string World, string Hull,
 
     /// <summary>True when neither Submarine Tracker nor AutoRetainer gave the hull's EXP, so the estimate counts from zero.</summary>
     public bool ExpUnknown { get; init; }
+
+    /// <summary>
+    /// Days from <see cref="LevellingBaseline"/>, set when the current route alone would take longer than a typical sub
+    /// that changes routes as it ranks, or when there is no route estimate; the days and dates shown are these then.
+    /// </summary>
+    public TypicalEstimate? Typical { get; init; }
+
+    public int? DaysWorst => Typical?.DaysWorst ?? Estimate?.DaysWorst;
+
+    public DateOnly? EtaWorst => Typical?.EtaWorst ?? Estimate?.EtaWorst;
 }
+
+public sealed record TypicalEstimate(int DaysBest, int DaysWorst, DateOnly EtaBest, DateOnly EtaWorst);
 
 /// <param name="TargetRank">The rank the days count to: the setting, capped at the game's max rank.</param>
 public sealed record LevellingPlan(int TargetRank, IReadOnlyList<LevellingEntry> Entries);
@@ -90,17 +102,33 @@ public static class LevellingPlanner
                 // Submarine Tracker's EXP first, AutoRetainer's where it has none
                 var cexp = hull.CurrentExp > 0 ? hull.CurrentExp : arSubs.TryGetValue(name, out var a) ? Math.Max(a.CurrentExp, 0) : 0;
                 var (estimate, problem) = Estimate(hull, data, target, cexp, cadenceHours, measured, today);
-                entries.Add(new LevellingEntry(character, world, name, hull.Rank, label, estimate, problem) { ExpUnknown = cexp == 0 });
+                entries.Add(new LevellingEntry(character, world, name, hull.Rank, label, estimate, problem)
+                {
+                    ExpUnknown = cexp == 0,
+                    // a character's only sub is the first of its FC: it opens every sector itself
+                    Typical = Typical(estimate, hull.Rank, target, hulls.Count == 1, today),
+                });
             }
         }
 
         return new LevellingPlan(
             target,
             entries
-                .OrderBy(e => e.Estimate?.DaysWorst ?? int.MaxValue)
+                .OrderBy(e => e.DaysWorst ?? int.MaxValue)
                 .ThenBy(e => e.Character, StringComparer.Ordinal)
                 .ThenBy(e => e.Hull, StringComparer.Ordinal)
                 .ToList());
+    }
+
+    /// <summary>
+    /// The baseline days when the route estimate is missing or its best case is slower than the baseline's slow quarter:
+    /// staying on one early route that long is not how anyone levels. Null when the baseline does not cover the target.
+    /// </summary>
+    public static TypicalEstimate? Typical(LevellingEstimate? estimate, int rank, int target, bool firstInFc, DateOnly today)
+    {
+        if (LevellingBaseline.Days(rank, target, firstInFc) is not { } days) return null;
+        if (estimate is { DaysBest: { } best } && best <= days.Worst) return null;
+        return new TypicalEstimate(days.Best, days.Worst, today.AddDays(days.Best), today.AddDays(days.Worst));
     }
 
     /// <summary>One hull's estimate, or the reason there is none.</summary>
