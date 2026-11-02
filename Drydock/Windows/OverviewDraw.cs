@@ -108,12 +108,7 @@ internal static class OverviewDraw
         ImGui.TextDisabled(title);
     }
 
-    private static void Big(string value)
-    {
-        ImGui.SetWindowFontScale(2f);
-        try { ImGui.TextUnformatted(value); }
-        finally { ImGui.SetWindowFontScale(1f); }
-    }
+    private static void Big(string value) => BigFont.Text(value);
 
     private static void RightText(string text, Vector4 color)
     {
