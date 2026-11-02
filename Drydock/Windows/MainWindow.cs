@@ -658,9 +658,7 @@ public sealed class MainWindow : Window
     private static void Tile(string value, string label, string? extra = null)
     {
         ImGui.TableNextColumn();
-        ImGui.SetWindowFontScale(2f);
-        try { ImGui.TextUnformatted(value); }
-        finally { ImGui.SetWindowFontScale(1f); }
+        BigFont.Text(value);
         ImGui.TextDisabled(label);
         if (extra is not null) ImGui.TextDisabled(extra);
     }

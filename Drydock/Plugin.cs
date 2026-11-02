@@ -63,6 +63,7 @@ public sealed class Plugin : IDalamudPlugin
                 HelpMessage = "Open Drydock. Subcommands: setup (check the other plugins), refresh (read again), config (settings).",
             });
 
+            BigFont.Init(PluginInterface.UiBuilder);
             PluginInterface.UiBuilder.Draw += windowSystem.Draw;
             PluginInterface.UiBuilder.OpenMainUi += OpenMain;
             PluginInterface.UiBuilder.OpenConfigUi += OpenConfig;
@@ -226,6 +227,7 @@ public sealed class Plugin : IDalamudPlugin
 
         CommandManager.RemoveHandler(CommandName);
         windowSystem.RemoveAllWindows();
+        BigFont.Dispose();
         infoBar?.Remove();
         Status?.Dispose();
         configWindow?.Flush(false);
