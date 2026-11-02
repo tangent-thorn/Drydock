@@ -52,7 +52,7 @@ public sealed class Plugin : IDalamudPlugin
             Status = new PluginStatusService(PluginInterface, Configuration);
 
             setupWindow = new SetupWindow(Status);
-            mainWindow = new MainWindow(Status, Configuration, () => setupWindow.IsOpen = true, UpdateInfoBar);
+            mainWindow = new MainWindow(Status, Configuration, () => setupWindow.IsOpen = true, OpenConfig, UpdateInfoBar);
             configWindow = new ConfigWindow(Configuration, Status, UpdateInfoBar);
             windowSystem.AddWindow(setupWindow);
             windowSystem.AddWindow(mainWindow);

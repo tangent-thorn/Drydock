@@ -5,6 +5,9 @@ many players with big fleets use to keep track of data. Compiles data from
 several other plugins then makes it readable.
 
 
+Local only: Drydock reads the files the other plugins already keep on your
+PC and its own small database next to them. No network calls, no telemetry.
+
 ![Overview](docs/overview.png)
 
 What's in it:
@@ -85,7 +88,8 @@ If something's missing, `/drydock setup` tells you what and links the installer.
 
 ## Commands
 
-`/drydock` opens it. `/drydock setup`, `/drydock refresh`, `/drydock config`.
+`/drydock` opens it. `/drydock setup`, `/drydock refresh`, `/drydock config`
+(or the cog in the window's title bar).
 
 Settings has the warning limits (days quiet, low ceruleum, low kits), when
 data counts as stale, the info bar toggle, how often you resend subs

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
@@ -21,12 +22,19 @@ public sealed class MainWindow : Window
     private DateTime lastAutoCheck = DateTime.MinValue;
     private readonly LogOnce loggedDrawErrors = new();
 
-    internal MainWindow(PluginStatusService status, Configuration configuration, Action openSetup, Action onExclusionsChanged) : base("Drydock###DrydockMain")
+    internal MainWindow(PluginStatusService status, Configuration configuration, Action openSetup, Action openConfig, Action onExclusionsChanged) : base("Drydock###DrydockMain")
     {
         this.status = status;
         this.configuration = configuration;
         this.openSetup = openSetup;
         this.onExclusionsChanged = onExclusionsChanged;
+        TitleBarButtons.Add(new TitleBarButton
+        {
+            Icon = FontAwesomeIcon.Cog,
+            IconOffset = new Vector2(2, 1),
+            Click = _ => openConfig(),
+            ShowTooltip = () => ImGui.SetTooltip("Settings"),
+        });
         Size = new Vector2(640, 420);
         SizeCondition = ImGuiCond.FirstUseEver;
         SizeConstraints = new WindowSizeConstraints

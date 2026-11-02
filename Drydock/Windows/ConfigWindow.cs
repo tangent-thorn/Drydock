@@ -17,7 +17,7 @@ public sealed class ConfigWindow : Window
         this.configuration = configuration;
         this.status = status;
         this.onInfoBarChanged = onInfoBarChanged;
-        Size = new Vector2(460, 520);
+        Size = new Vector2(460, 600);
         SizeCondition = ImGuiCond.FirstUseEver;
         SizeConstraints = new WindowSizeConstraints
         {
@@ -33,7 +33,6 @@ public sealed class ConfigWindow : Window
 
     public override void Draw()
     {
-        Int("Stale after (days)", configuration.StaleDays, 1, 365, v => configuration.StaleDays = v, refresh: true);
         var bar = configuration.ShowInfoBar;
         if (ImGui.Checkbox("Show in the server info bar", ref bar))
         {
@@ -41,28 +40,45 @@ public sealed class ConfigWindow : Window
             configuration.Save();
             onInfoBarChanged();
         }
-        Int("Silent after (days)", configuration.SilentDays, 1, 30, v => configuration.SilentDays = v);
-        Int("Low ceruleum below", configuration.LowCeruleum, 0, 100000, v => configuration.LowCeruleum = v);
-        Int("Low repair kits below", configuration.LowRepairKits, 0, 100000, v => configuration.LowRepairKits = v);
-        Int("Resend cadence (hours, 0 = as soon as back)", configuration.ResendCadenceHours, 0, 168, v => configuration.ResendCadenceHours = v);
-        Int("Levelling target rank", configuration.TargetRank, 2, 145, v => configuration.TargetRank = v);
-        Double("Gil target (Projection tab)", configuration.GilTarget, ProjectionMath.MinTarget, ProjectionMath.MaxTarget, "%.0f",
-            v => configuration.GilTarget = (long)v);
-        Int("Ceruleum price (gil)", configuration.FuelPrice, 0, 100000, v => configuration.FuelPrice = v);
-        Int("Repair kit price (gil)", configuration.KitPrice, 0, 1000000, v => configuration.KitPrice = v);
-        ImGui.TextDisabled("Repair kit price: " + status.KitPriceText);
-        Double("Ceruleum per sector", configuration.FuelPerSector, 0, 1000, "%.3f", v => configuration.FuelPerSector = v);
-        Double("Repair kits per sector", configuration.KitsPerSector, 0, 1000, "%.3f", v => configuration.KitsPerSector = v);
-        ImGui.TextDisabled("The two rates above are used until the history has measured them.");
-        var measured = configuration.UseMeasuredRates;
-        if (ImGui.Checkbox("Use measured fuel and kit use", ref measured))
+
+        if (ImGui.CollapsingHeader("Warnings", ImGuiTreeNodeFlags.DefaultOpen))
         {
-            configuration.UseMeasuredRates = measured;
-            configuration.Save();
-            status.Recompute();
+            Int("Stale after (days)", configuration.StaleDays, 1, 365, v => configuration.StaleDays = v, refresh: true);
+            Int("Silent after (days)", configuration.SilentDays, 1, 30, v => configuration.SilentDays = v);
+            Int("Low ceruleum below", configuration.LowCeruleum, 0, 100000, v => configuration.LowCeruleum = v);
+            Int("Low repair kits below", configuration.LowRepairKits, 0, 100000, v => configuration.LowRepairKits = v);
+            Int("Supply runway warning below (days)", configuration.RunwayDays, 1, 365, v => configuration.RunwayDays = v);
         }
-        Int("Supply runway warning below (days)", configuration.RunwayDays, 1, 365, v => configuration.RunwayDays = v);
-        ImGui.TextDisabled("Salvage prices are the vendor prices.");
+
+        if (ImGui.CollapsingHeader("Levelling", ImGuiTreeNodeFlags.DefaultOpen))
+        {
+            Int("Resend cadence (hours, 0 = as soon as back)", configuration.ResendCadenceHours, 0, 168, v => configuration.ResendCadenceHours = v);
+            Int("Target rank", configuration.TargetRank, 2, 145, v => configuration.TargetRank = v);
+        }
+
+        if (ImGui.CollapsingHeader("Upkeep", ImGuiTreeNodeFlags.DefaultOpen))
+        {
+            Int("Ceruleum price (gil)", configuration.FuelPrice, 0, 100000, v => configuration.FuelPrice = v);
+            Int("Repair kit price (gil)", configuration.KitPrice, 0, 1000000, v => configuration.KitPrice = v);
+            ImGui.TextDisabled("Repair kit price: " + status.KitPriceText);
+            Double("Ceruleum per sector", configuration.FuelPerSector, 0, 1000, "%.3f", v => configuration.FuelPerSector = v);
+            Double("Repair kits per sector", configuration.KitsPerSector, 0, 1000, "%.3f", v => configuration.KitsPerSector = v);
+            ImGui.TextDisabled("The two rates above are used until the history has measured them.");
+            var measured = configuration.UseMeasuredRates;
+            if (ImGui.Checkbox("Use measured fuel and kit use", ref measured))
+            {
+                configuration.UseMeasuredRates = measured;
+                configuration.Save();
+                status.Recompute();
+            }
+            ImGui.TextDisabled("Salvage prices are the vendor prices.");
+        }
+
+        if (ImGui.CollapsingHeader("Projection", ImGuiTreeNodeFlags.DefaultOpen))
+        {
+            Double("Gil target", configuration.GilTarget, ProjectionMath.MinTarget, ProjectionMath.MaxTarget, "%.0f",
+                v => configuration.GilTarget = (long)v);
+        }
     }
 
     private void Int(string label, int current, int min, int max, Action<int> set, bool refresh = false)
