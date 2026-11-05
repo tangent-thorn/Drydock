@@ -229,7 +229,7 @@ public sealed class Plugin : IDalamudPlugin
         windowSystem.RemoveAllWindows();
         BigFont.Dispose();
         infoBar?.Remove();
-        Status?.Dispose();
         configWindow?.Flush(false);
+        Status?.Dispose();
     }
 }
