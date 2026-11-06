@@ -38,8 +38,11 @@ jobs:
         shell: pwsh
         run: ./.github/scripts/Set-ReleaseChangelog.ps1 -Version "${{ steps.ver.outputs.tag }}" -ChangelogPath CHANGELOG.md -NotesFile "$env:RUNNER_TEMP/notes.md" -Manifest Drydock/Drydock.json
 
+      - name: Restore (locked)
+        run: dotnet restore --locked-mode
+
       - name: Build Release
-        run: dotnet build --configuration Release
+        run: dotnet build --configuration Release --no-restore
 
       - name: Create GitHub Release
         shell: pwsh

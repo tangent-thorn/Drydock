@@ -1,9 +1,26 @@
 name: Build
 
+# Docs, screenshots, the repo index and the issue templates don't change the build.
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'repo.json'
+      - 'LICENSE'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/scripts/**'
+      - '.github/dependabot.yml'
   pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'repo.json'
+      - 'LICENSE'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/scripts/**'
+      - '.github/dependabot.yml'
 
 jobs:
   build:
@@ -21,5 +38,8 @@ jobs:
           Invoke-WebRequest -Uri https://goatcorp.github.io/dalamud-distrib/latest.zip -OutFile "$env:RUNNER_TEMP\dalamud.zip"
           Expand-Archive -Force "$env:RUNNER_TEMP\dalamud.zip" "$env:AppData\XIVLauncher\addon\Hooks\dev"
 
+      - name: Restore (locked)
+        run: dotnet restore --locked-mode
+
       - name: Build
-        run: dotnet build --configuration Release
+        run: dotnet build --configuration Release --no-restore
