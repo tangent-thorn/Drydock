@@ -6,6 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
     <RootNamespace>Drydock.Core</RootNamespace>
+    <!-- CI restores in locked mode, like the plugin project (the Dalamud SDK turns it on there). -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
 
   <ItemGroup>
