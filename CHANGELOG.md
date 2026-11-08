@@ -3,6 +3,11 @@
 What changed in each release. The section for a version is what shows in
 the plugin installer when you update.
 
+## 1.0.7
+
+- Click a column header to sort the tables on Gil, Salvage (per character),
+  Levelling and Tracking. Click again to flip it, a third time to go back.
+
 ## 1.0.6
 
 - What changed in an update now shows in the plugin installer.

@@ -57,6 +57,9 @@ What's in it:
 - A server info bar entry: "Subs 3 back, next in 1h 12m". Click it to open
   Drydock, or turn it off in settings.
 
+The tables on Gil, Salvage, Levelling and Tracking sort by any column, just
+click the header.
+
 A sub counts as farming when it's on one of the gil routes (OJ, MOJ, ROJ,
 JOZ, MROJ, MOJZ, JORZ, MROJZ, RZVOJ, MRVOJ), whatever its rank.
 

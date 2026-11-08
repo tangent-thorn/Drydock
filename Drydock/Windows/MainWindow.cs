@@ -111,6 +111,21 @@ public sealed class MainWindow : Window
         return false;
     }
 
+    // A click on a header sorts, the next reverses, the third goes back to Drydock's own order. Columns flagged BigFirst
+    // start with the biggest number. The keys follow the column order; a null key is a "-" and sorts last.
+    private const ImGuiTableFlags SortableTable = ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders | ImGuiTableFlags.SizingStretchProp
+        | ImGuiTableFlags.Sortable | ImGuiTableFlags.SortTristate;
+    private const ImGuiTableColumnFlags BigFirst = ImGuiTableColumnFlags.PreferSortDescending;
+
+    private static IReadOnlyList<T> Sorted<T>(IReadOnlyList<T> rows, params Func<T, IComparable?>[] keys)
+    {
+        var specs = ImGui.TableGetSortSpecs();
+        if (specs.IsNull || specs.SpecsCount == 0) return rows;
+        var spec = specs.Specs;
+        if (spec.ColumnIndex < 0 || spec.ColumnIndex >= keys.Length || spec.SortDirection == ImGuiSortDirection.None) return rows;
+        return TableSort.By(rows, keys[spec.ColumnIndex], spec.SortDirection == ImGuiSortDirection.Descending);
+    }
+
     private static void DrawStale(StatusSnapshot snap, params PluginRequirement[] used)
     {
         foreach (var (requirement, note) in snap.StaleNotes)
@@ -286,14 +301,14 @@ public sealed class MainWindow : Window
         }
 
         if (byCharacterNote is not null || b.Characters.Count == 0) return;
-        using var chars = ImRaii.Table("salvage-backlog-chars", 3, ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders | ImGuiTableFlags.SizingStretchProp);
+        using var chars = ImRaii.Table("salvage-backlog-chars", 3, SortableTable);
         if (chars)
         {
             ImGui.TableSetupColumn("Character", ImGuiTableColumnFlags.WidthStretch, 3);
-            ImGui.TableSetupColumn("Salvage", ImGuiTableColumnFlags.WidthStretch, 2);
-            ImGui.TableSetupColumn("Slots", ImGuiTableColumnFlags.WidthFixed, S(50));
+            ImGui.TableSetupColumn("Salvage", ImGuiTableColumnFlags.WidthStretch | BigFirst, 2);
+            ImGui.TableSetupColumn("Slots", ImGuiTableColumnFlags.WidthFixed | BigFirst, S(50));
             ImGui.TableHeadersRow();
-            foreach (var c in b.Characters)
+            foreach (var c in Sorted(b.Characters, c => c.Name, c => c.Value, c => c.Slots))
             {
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
@@ -336,18 +351,20 @@ public sealed class MainWindow : Window
             ImGui.TextDisabled("No ticked character holds any gil or salvage.");
             return;
         }
-        using (var table = ImRaii.Table("gil-holdings", 6, ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders | ImGuiTableFlags.SizingStretchProp))
+        using (var table = ImRaii.Table("gil-holdings", 6, SortableTable))
         {
             if (table)
             {
                 ImGui.TableSetupColumn("Character", ImGuiTableColumnFlags.WidthStretch, 3);
                 ImGui.TableSetupColumn("World", ImGuiTableColumnFlags.WidthStretch, 2);
-                ImGui.TableSetupColumn("Gil", ImGuiTableColumnFlags.WidthStretch, 2);
-                ImGui.TableSetupColumn("Retainers", ImGuiTableColumnFlags.WidthStretch, 2);
-                ImGui.TableSetupColumn("Salvage", ImGuiTableColumnFlags.WidthStretch, 2);
-                ImGui.TableSetupColumn("Total", ImGuiTableColumnFlags.WidthStretch, 2);
+                ImGui.TableSetupColumn("Gil", ImGuiTableColumnFlags.WidthStretch | BigFirst, 2);
+                ImGui.TableSetupColumn("Retainers", ImGuiTableColumnFlags.WidthStretch | BigFirst, 2);
+                ImGui.TableSetupColumn("Salvage", ImGuiTableColumnFlags.WidthStretch | BigFirst, 2);
+                ImGui.TableSetupColumn("Total", ImGuiTableColumnFlags.WidthStretch | BigFirst, 2);
                 ImGui.TableHeadersRow();
-                foreach (var r in h.Rows)
+                var rows = Sorted(h.Rows, r => r.Name, r => r.World, r => r.Gil, r => r.RetainerGil,
+                    r => h.SalvageKnown ? r.Salvage : null, r => r.Unread ? null : r.Total);
+                foreach (var r in rows)
                 {
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
@@ -754,21 +771,24 @@ public sealed class MainWindow : Window
             ImGui.TextUnformatted($"{entries.Count} hulls not farming" + (view.LastEta is { } last ? $", the last one reaches rank {target} by {DateLabels.Short(last, today)} at the worst" : ""));
             if (view.Unestimated > 0)
                 ImGui.TextDisabled($"{view.Unestimated} of them cannot be estimated yet; the table says why.");
-            using (var table = ImRaii.Table("levelling-hulls", 9, ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders | ImGuiTableFlags.SizingStretchProp))
+            using (var table = ImRaii.Table("levelling-hulls", 9, SortableTable))
             {
                 if (table)
                 {
                     ImGui.TableSetupColumn("Character", ImGuiTableColumnFlags.WidthStretch, 3);
                     ImGui.TableSetupColumn("Submarine", ImGuiTableColumnFlags.WidthStretch, 3);
-                    ImGui.TableSetupColumn("Rank", ImGuiTableColumnFlags.WidthFixed, S(45));
+                    ImGui.TableSetupColumn("Rank", ImGuiTableColumnFlags.WidthFixed | BigFirst, S(45));
                     ImGui.TableSetupColumn("Route", ImGuiTableColumnFlags.WidthFixed, S(70));
                     ImGui.TableSetupColumn("Voyage", ImGuiTableColumnFlags.WidthFixed, S(60));
                     ImGui.TableSetupColumn("Cycle", ImGuiTableColumnFlags.WidthFixed, S(115));
-                    ImGui.TableSetupColumn("EXP per voyage", ImGuiTableColumnFlags.WidthStretch, 3);
+                    ImGui.TableSetupColumn("EXP per voyage", ImGuiTableColumnFlags.WidthStretch | BigFirst, 3);
                     ImGui.TableSetupColumn($"Days to {target}", ImGuiTableColumnFlags.WidthFixed, S(90));
                     ImGui.TableSetupColumn($"Reaches {target}", ImGuiTableColumnFlags.WidthStretch, 3);
                     ImGui.TableHeadersRow();
-                    foreach (var e in entries)
+                    // days and dates sort by the worst case, the figure the projection uses
+                    var rows = Sorted(entries, e => e.Character, e => e.Hull, e => e.Rank, e => e.RouteLabel.Length == 0 ? null : e.RouteLabel,
+                        e => e.Estimate?.VoyageHours, e => e.Estimate?.CycleHours, e => e.Estimate?.ExpWorst, e => e.DaysWorst, e => e.EtaWorst);
+                    foreach (var e in rows)
                     {
                         ImGui.TableNextRow();
                         ImGui.TableNextColumn();
@@ -848,21 +868,24 @@ public sealed class MainWindow : Window
         else ImGui.TextDisabled("AutoRetainer has no voyage record for these characters");
         if (tracking.Characters.All(c => excluded.Contains(c.Key)))
             ImGui.TextColored(StatusColors.Amber, TabGates.AllUnticked);
-        using (var table = ImRaii.Table("tracking-characters", 8, ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders | ImGuiTableFlags.SizingStretchProp))
+        using (var table = ImRaii.Table("tracking-characters", 8, SortableTable))
         {
             if (table)
             {
                 ImGui.TableSetupColumn("Include", ImGuiTableColumnFlags.WidthFixed, S(65));
                 ImGui.TableSetupColumn("Character", ImGuiTableColumnFlags.WidthStretch, 3);
                 ImGui.TableSetupColumn("World", ImGuiTableColumnFlags.WidthStretch, 2);
-                ImGui.TableSetupColumn("Subs", ImGuiTableColumnFlags.WidthFixed, S(40));
-                ImGui.TableSetupColumn("Sent today", ImGuiTableColumnFlags.WidthFixed, S(90));
-                ImGui.TableSetupColumn("Days silent", ImGuiTableColumnFlags.WidthFixed, S(90));
+                ImGui.TableSetupColumn("Subs", ImGuiTableColumnFlags.WidthFixed | BigFirst, S(40));
+                ImGui.TableSetupColumn("Sent today", ImGuiTableColumnFlags.WidthFixed | BigFirst, S(90));
+                ImGui.TableSetupColumn("Days silent", ImGuiTableColumnFlags.WidthFixed | BigFirst, S(90));
                 ImGui.TableSetupColumn("Ceruleum", ImGuiTableColumnFlags.WidthFixed, S(75));
                 ImGui.TableSetupColumn("Repair kits", ImGuiTableColumnFlags.WidthFixed, S(90));
                 ImGui.TableHeadersRow();
 
-                foreach (var c in tracking.Characters)
+                // Include sorts unticked first; ceruleum and kits lowest first, the ones that need a restock
+                var rows = Sorted(tracking.Characters, c => excluded.Contains(c.Key) ? 0 : 1, c => c.Name, c => c.World,
+                    c => tracking.HullsKnown ? c.Hulls : null, c => c.SentToday, c => c.DaysSilent, c => c.Ceruleum, c => c.RepairKits);
+                foreach (var c in rows)
                 {
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
