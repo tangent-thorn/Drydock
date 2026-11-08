@@ -18,8 +18,7 @@ What's in it:
   hours, how many days of ceruleum and kits the fleet has left, the characters
   lowest on kits, and warnings for characters running low. Uses your Dalamud
   theme colours.
-- **Fleet**: every sub grouped by FC, with rank, route and a live countdown
-  to when it's back.
+- **Fleet**: every sub grouped by FC, with rank, route and a live countdown.
 - **Levelling**: every sub that isn't on a gil route yet, with its route,
   voyage time, EXP per voyage, and a best to worst range for the days left
   to your target rank (85 unless you change it) and the dates. It works off
@@ -57,13 +56,10 @@ What's in it:
 - A server info bar entry: "Subs 3 back, next in 1h 12m". Click it to open
   Drydock, or turn it off in settings.
 
-The tables on Gil, Salvage, Levelling and Tracking sort by any column, just
-click the header.
-
 A sub counts as farming when it's on one of the gil routes (OJ, MOJ, ROJ,
 JOZ, MROJ, MOJZ, JORZ, MROJZ, RZVOJ, MRVOJ), whatever its rank.
 
-Heads up: on a fresh install the fuel and kit numbers are the defaults in
+On a fresh install the fuel and kit numbers are the defaults in
 settings until Drydock has a few days of its own history to measure them.
 Still keeping an eye on how close those land.
 
