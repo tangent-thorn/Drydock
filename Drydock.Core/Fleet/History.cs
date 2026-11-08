@@ -124,7 +124,7 @@ public static class HistoryRecorder
     public static T? FreshOnly<T>(IReadOnlyList<PluginCheckResult> results, PluginRequirement req, T? read) where T : class =>
         TabGates.Result(results, req)?.Status == PluginStatus.Ready ? read : null;
 
-    /// <summary>All-time distinct (hull, return) voyages and loot rows, from the loot read; unfiltered by the character filter.</summary>
+    /// <summary>Distinct (hull, return) voyages and loot rows over the given rows; the live path takes the database's own whole-table counters instead.</summary>
     public static (long Voyages, long Sectors) Lifetime(IEnumerable<LootRow> loot)
     {
         var voyages = new HashSet<(long, long)>();
@@ -141,6 +141,7 @@ public static class HistoryRecorder
     /// Today's row from the cached reads, fleet-wide. A missing source gives null for what it feeds:
     /// no AutoRetainer, no liquid gil and stock; no Allagan Tools, no held salvage and no position.
     /// </summary>
+    /// <param name="lifetime">The whole table's counters from the loot read; <paramref name="loot"/> holds only the read window.</param>
     public static HistoryRow Build(
         DateOnly today,
         long nowUtcSeconds,
@@ -150,18 +151,18 @@ public static class HistoryRecorder
         IReadOnlyList<AutoRetainerCharacter>? characters,
         TrackingRead? tracking,
         SalvageBacklog? backlog,
-        TimeZoneInfo zone)
+        TimeZoneInfo zone,
+        (long Voyages, long Sectors) lifetime)
     {
         var subs = fleets.SelectMany(f => f.Submarines).ToList();
-        var (voyages, sectors) = Lifetime(loot);
+        var (voyages, sectors) = lifetime;
 
         long salvageDay = 0;
         foreach (var r in loot)
         {
             var d = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTimeOffset.FromUnixTimeSeconds(r.Return).UtcDateTime, zone));
             if (d != today) continue;
-            if (prices.TryGetValue(r.PrimaryItem, out var p1)) salvageDay += (long)p1 * r.PrimaryCount;
-            if (prices.TryGetValue(r.AdditionalItem, out var p2)) salvageDay += (long)p2 * r.AdditionalCount;
+            salvageDay += SalvageMath.RowValue(r, prices);
         }
 
         HoldingsSummary? h = characters is null ? null : HoldingsMath.Compute(characters, backlog, new HashSet<string>());

@@ -128,9 +128,7 @@ public static class SalvageMath
         foreach (var r in loot)
         {
             var d = LocalDate(r.Return, zone);
-            long v = 0;
-            if (prices.TryGetValue(r.PrimaryItem, out var p1)) v += (long)p1 * r.PrimaryCount;
-            if (prices.TryGetValue(r.AdditionalItem, out var p2)) v += (long)p2 * r.AdditionalCount;
+            var v = RowValue(r, prices);
             if (v != 0) prod[d] = prod.GetValueOrDefault(d) + v;
 
             var key = (r.SubmarineId, r.Return);
@@ -270,6 +268,15 @@ public static class SalvageMath
             cer,
             kits,
             FleetLevelling.HullsPerGilRoute(ticked));
+    }
+
+    /// <summary>The vendor value of one loot row: both item slots priced; an item the price table lacks counts 0.</summary>
+    public static long RowValue(LootRow r, IReadOnlyDictionary<uint, int> prices)
+    {
+        long v = 0;
+        if (prices.TryGetValue(r.PrimaryItem, out var p1)) v += (long)p1 * r.PrimaryCount;
+        if (prices.TryGetValue(r.AdditionalItem, out var p2)) v += (long)p2 * r.AdditionalCount;
+        return v;
     }
 
     private static DateOnly LocalDate(long unixSeconds, TimeZoneInfo zone) =>

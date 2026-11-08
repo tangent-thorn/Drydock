@@ -17,7 +17,40 @@ public static class InventoryToolsCsv
 {
     private const int ItemColumn = 2;
     private const int QuantityColumn = 3;
-    private const int OwnerColumn = 23; // TODO check these again if Allagan Tools ever adds a column, the file has no header to go by
+    // The file has no header to validate these against; OwnersLookRight is the guard when the columns move.
+    private const int OwnerColumn = 23;
+
+    /// <summary>Owner rows below this count say too little to call the format wrong.</summary>
+    public const int OwnerCheckMinRows = 20;
+
+    /// <summary>
+    /// Whether the owner column still holds character ids. The columns are blind indices into a header-less file, so
+    /// if Allagan Tools adds or moves one, the owner cell silently becomes some other number and every stack lands on
+    /// the wrong owner. With enough owner-carrying rows, at least one owner must be a character id AutoRetainer knows
+    /// (the plugins see the same logins); when none is, the format has changed and the read must not be trusted.
+    /// </summary>
+    public static bool OwnersLookRight(IReadOnlyList<InventoryRow> rows, IEnumerable<ulong> knownCids)
+    {
+        var owners = new HashSet<ulong>();
+        var owned = 0;
+        foreach (var r in rows)
+        {
+            if (r.OwnerId is { } o)
+            {
+                owned++;
+                owners.Add(o);
+            }
+        }
+        if (owned < OwnerCheckMinRows) return true;
+        var any = false;
+        foreach (var cid in knownCids)
+        {
+            if (cid == 0) continue;
+            any = true;
+            if (owners.Contains(cid)) return true;
+        }
+        return !any;
+    }
 
     // The plugin rewrites this file while we read it, so failures come back as Error, never thrown.
     public static InventoryRead Read(string path)

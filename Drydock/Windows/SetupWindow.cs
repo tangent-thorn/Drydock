@@ -48,8 +48,8 @@ public sealed class SetupWindow : Window
             }
             if (status.Loot is { Error: { } lootError })
                 ImGui.TextColored(StatusColors.Red, "Could not read its loot: " + lootError);
-            else if (status.Loot is { Rows: { } loot })
-                ImGui.TextDisabled($"Loot rows in its database: {loot.Count:N0}");
+            else if (status.Loot is { Rows: not null } loot)
+                ImGui.TextDisabled($"Loot rows in its database: {loot.LifetimeSectors:N0}");
         }
         else if (req == PluginRequirements.AutoRetainer && status.AutoRetainer is { } ar)
         {

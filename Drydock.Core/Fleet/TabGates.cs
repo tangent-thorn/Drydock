@@ -170,7 +170,7 @@ public static class TabGates
         if (!g.IsOpen) return g;
         if (s.Loot is null) return TabGate.Reading;
         if (s.Loot.Rows is null) return new(GateKind.Error, ["Could not read Submarine Tracker's loot: " + s.Loot.Error]);
-        if (s.Loot.Rows.Count == 0) return new(GateKind.Empty, [NoLoot]);
+        if (s.Loot.Rows.Count == 0) return new(GateKind.Empty, [s.Loot.LifetimeSectors > 0 ? NoRecentLoot : NoLoot]);
         if (CharacterFilter.Apply(s.Loot.Rows, excluded).Count == 0) return new(GateKind.Empty, [NoLootTicked]);
         return TabGate.Open;
     }
@@ -248,6 +248,8 @@ public static class TabGates
             return inventory?.Rows is null ? "Reading..." : null;
         if (autoRetainer?.Error is not null) return "Needs AutoRetainer: its config could not be read, so salvage cannot be told apart by character.";
         if (inventory?.Rows is null || autoRetainer?.Characters is null) return "Reading...";
+        if (!InventoryToolsCsv.OwnersLookRight(inventory.Rows, autoRetainer.Characters.Select(c => c.Cid)))
+            return "Needs Allagan Tools: inventories.csv no longer matches the format Drydock reads (none of AutoRetainer's characters appears in its owner column), so salvage is left out rather than counted wrong. An Allagan Tools update likely changed the file; update Drydock once a fix is out.";
         return null;
     }
 
@@ -258,7 +260,7 @@ public static class TabGates
         GateKind.Reading => "reading",
         GateKind.Needs => "needs a plugin, see setup",
         GateKind.Error => "could not be read",
-        _ => g.Lines.Count > 0 && g.Lines[0] is NoLoot or NoLootTicked ? "no voyage recorded yet" : "nothing to count",
+        _ => g.Lines.Count > 0 && (g.Lines[0] is NoLoot or NoLootTicked || g.Lines[0] == NoRecentLoot) ? "no voyage recorded yet" : "nothing to count",
     };
 
     /// <summary>The short form of a reason for a tile's second line.</summary>
@@ -275,6 +277,7 @@ public static class TabGates
     public const string NoTickedSubs = "None of the ticked characters owns a submarine. Tick one that does on the Tracking tab.";
     public const string AllUnticked = "Every character is unticked. Tick at least one on the Tracking tab.";
     public const string NoLoot = "Submarine Tracker has recorded no voyage yet, so there is no salvage to count. Let a submarine come back with Submarine Tracker loaded.";
+    public static readonly string NoRecentLoot = $"Submarine Tracker has no voyage in the last {SubmarineTrackerDb.ReadWindowDays} days, so there is nothing current to count. Let a submarine come back with Submarine Tracker loaded.";
     public const string NoLootTicked = "Submarine Tracker has recorded no voyage for the ticked characters yet.";
 
     private static string AutoRetainerError(string? error) =>

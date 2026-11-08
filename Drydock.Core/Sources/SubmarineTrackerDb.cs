@@ -44,6 +44,12 @@ public sealed record LootRow(uint PrimaryItem, uint PrimaryCount, uint Additiona
 public sealed record LootRead(IReadOnlyList<LootRow>? Rows, string? Error)
 {
     public bool HasSectors { get; init; } = true;
+
+    /// <summary>Distinct (hull, return) voyages over the whole table, counted by the database; <see cref="Rows"/> holds only the read window.</summary>
+    public long LifetimeVoyages { get; init; }
+
+    /// <summary>Valid loot rows over the whole table, counted by the database.</summary>
+    public long LifetimeSectors { get; init; }
 }
 
 // Reads another plugin's live WAL database, so failures come back as Error, never thrown.
@@ -113,10 +119,19 @@ public static class SubmarineTrackerDb
         }
     }
 
-    /// <summary>Every valid sector of loot, one row each; the whole table is read, so call it once per refresh.</summary>
-    public static LootRead ReadLoot(string dbPath) => SourceFailure.WithRetry(() => ReadLootOnce(dbPath));
+    /// <summary>
+    /// Days of loot <see cref="ReadLoot"/> materialises as rows: enough for the 30-day windows and the 90-day chart
+    /// with margin, while a tracker database years old stays cheap to read.
+    /// </summary>
+    public const int ReadWindowDays = 100;
 
-    private static (LootRead Value, Exception? Error) ReadLootOnce(string dbPath)
+    /// <summary>
+    /// The last <see cref="ReadWindowDays"/> days of valid loot as rows, plus the whole table's lifetime voyage and
+    /// sector counts, aggregated by the database so old rows are never materialised.
+    /// </summary>
+    public static LootRead ReadLoot(string dbPath, DateTime nowUtc) => SourceFailure.WithRetry(() => ReadLootOnce(dbPath, nowUtc));
+
+    private static (LootRead Value, Exception? Error) ReadLootOnce(string dbPath, DateTime nowUtc)
     {
         try
         {
@@ -130,14 +145,27 @@ public static class SubmarineTrackerDb
 
             var hasCompanies = tables.Contains("freecompany");
             var hasSector = have.Contains("Sector");
+            var valid = have.Contains("Valid") ? "where l.Valid = 1" : "";
+            var cutoff = new DateTimeOffset(nowUtc, TimeSpan.Zero).ToUnixTimeSeconds() - ReadWindowDays * 86400L;
+
+            long lifetimeVoyages, lifetimeSectors;
+            using (var life = conn.CreateCommand())
+            {
+                life.CommandText = $"select count(*), count(distinct l.SubmarineId || '/' || l.Return) from loot l {valid}";
+                using var lr = life.ExecuteReader();
+                lr.Read();
+                (lifetimeSectors, lifetimeVoyages) = (Long(lr, 0), Long(lr, 1));
+            }
+
             using var cmd = conn.CreateCommand();
             cmd.CommandText = $"""
                 select l.PrimaryItem, l.PrimaryCount, l.AdditionalItem, l.AdditionalCount, l.Return, l.SubmarineId, l.Rank,
                        {(hasCompanies ? "f.CharacterName" : "null")}, {(hasSector ? "l.Sector" : "null")}
                 from loot l
                 {(hasCompanies ? "left join freecompany f on f.FreeCompanyId = l.FreeCompanyId" : "")}
-                {(have.Contains("Valid") ? "where l.Valid = 1" : "")}
+                {(valid.Length > 0 ? valid + " and" : "where")} l.Return >= $cutoff
                 """;
+            cmd.Parameters.AddWithValue("$cutoff", cutoff);
             var rows = new List<LootRow>();
             using var r = cmd.ExecuteReader();
             while (r.Read())
@@ -147,7 +175,7 @@ public static class SubmarineTrackerDb
                     Long(r, 4), Long(r, 5), (int)Math.Clamp(Long(r, 6), 0, int.MaxValue), Str(r, 7, ""),
                     U32(r, 8)));
             }
-            return (new(rows, null) { HasSectors = hasSector }, null);
+            return (new(rows, null) { HasSectors = hasSector, LifetimeVoyages = lifetimeVoyages, LifetimeSectors = lifetimeSectors }, null);
         }
         catch (Exception ex)
         {

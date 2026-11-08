@@ -3,6 +3,20 @@
 What changed in each release. The section for a version is what shows in
 the plugin installer when you update.
 
+## 1.0.8
+
+- If an Allagan Tools update changes what inventories.csv's columns mean,
+  salvage now shows as unavailable with the reason instead of as wrong
+  numbers.
+- Only the recent part of Submarine Tracker's loot is read in full; the
+  lifetime counters come from the database itself. Refreshes stay fast
+  however old the database grows, and nothing visible changes.
+- Days silent no longer shows -1 when a voyage is filed under tomorrow's
+  day.
+- An FC header no longer shows another same-named character's "sent today".
+- Column sorting reuses its order between frames instead of resorting
+  every frame.
+
 ## 1.0.7
 
 - Click a column header to sort the tables on Gil, Salvage (per character),

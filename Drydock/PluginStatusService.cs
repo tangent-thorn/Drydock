@@ -211,7 +211,7 @@ internal sealed class PluginStatusService : IDisposable
             () => Guard(() => AutoRetainerConfig.Read(PathFor(ar.Requirement)), e => new AutoRetainerRead(null, e)));
         ct.ThrowIfCancellationRequested();
         var loot = Cached(lootCache, st, staleDays,
-            () => Guard(() => SubmarineTrackerDb.ReadLoot(PathFor(st.Requirement)), e => new LootRead(null, e)));
+            () => Guard(() => SubmarineTrackerDb.ReadLoot(PathFor(st.Requirement), DateTime.UtcNow), e => new LootRead(null, e)));
         var inventory = Cached(inventoryCache, ag, staleDays,
             () => Guard(() => InventoryToolsCsv.Read(PathFor(ag.Requirement)), e => new InventoryRead(null, e)));
         ct.ThrowIfCancellationRequested();
@@ -308,11 +308,13 @@ internal sealed class PluginStatusService : IDisposable
                     var inv = HistoryRecorder.FreshOnly(results, PluginRequirements.AllaganTools, inventory);
                     var tracking = ar?.Characters is null ? null : joined;
                     SalvageBacklog? backlog = null;
-                    if (inv?.Rows is { } invRows && ar?.Characters is { } chars)
+                    // an inventory file whose owner column no longer looks right feeds nothing into the row
+                    if (inv?.Rows is { } invRows && ar?.Characters is { } chars && InventoryToolsCsv.OwnersLookRight(invRows, chars.Select(c => c.Cid)))
                         backlog = BacklogMath.Compute(invRows, salvageNames, chars, new HashSet<string>());
                     var row = HistoryRecorder.Build(
                         DateOnly.FromDateTime(DateTime.Now), DateTimeOffset.UtcNow.ToUnixTimeSeconds(), fleet!.Fleets!, loot!.Rows!,
-                        SalvageTable.DefaultPrices, ar?.Characters, tracking, backlog, TimeZoneInfo.Local);
+                        SalvageTable.DefaultPrices, ar?.Characters, tracking, backlog, TimeZoneInfo.Local,
+                        (loot.LifetimeVoyages, loot.LifetimeSectors));
                     ct.ThrowIfCancellationRequested();
                     var before = history.Writes;
                     writeError = history.UpsertIfChanged(row);

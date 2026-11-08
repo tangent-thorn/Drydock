@@ -192,10 +192,19 @@ public static class SnapshotBuilder
 
         var ticked = inputs.Fleet?.Fleets is { } fleets ? CharacterFilter.Apply(fleets, excluded) : null;
         var subs = ticked is null ? [] : ticked.SelectMany(f => f.Submarines).ToList();
+        // keyed by name alone, since a company row carries the FC's world, not the character's; two characters
+        // sharing a full name across worlds are ambiguous, so a count that differs between them is not shown
         var sent = new Dictionary<string, int?>(StringComparer.Ordinal);
         if (tracking is not null)
         {
-            foreach (var c in tracking.Characters) sent.TryAdd(c.Name, c.SentToday);
+            foreach (var c in tracking.Characters)
+            {
+                if (sent.TryGetValue(c.Name, out var existing))
+                {
+                    if (existing != c.SentToday) sent[c.Name] = null;
+                }
+                else sent[c.Name] = c.SentToday;
+            }
         }
 
         var stale = new List<(PluginRequirement, string)>();

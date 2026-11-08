@@ -117,13 +117,30 @@ public sealed class MainWindow : Window
         | ImGuiTableFlags.Sortable | ImGuiTableFlags.SortTristate;
     private const ImGuiTableColumnFlags BigFirst = ImGuiTableColumnFlags.PreferSortDescending;
 
-    private static IReadOnlyList<T> Sorted<T>(IReadOnlyList<T> rows, params Func<T, IComparable?>[] keys)
+    // the sorted rows per table, reused frame to frame until the snapshot or the sort moves
+    private readonly Dictionary<string, (long Version, int Column, ImGuiSortDirection Direction, object Rows)> sortCache = new(StringComparer.Ordinal);
+
+    private IReadOnlyList<T> Sorted<T>(string table, StatusSnapshot snap, IReadOnlyList<T> rows, params Func<T, IComparable?>[] keys)
     {
         var specs = ImGui.TableGetSortSpecs();
-        if (specs.IsNull || specs.SpecsCount == 0) return rows;
+        if (specs.IsNull || specs.SpecsCount == 0)
+        {
+            sortCache.Remove(table);
+            return rows;
+        }
         var spec = specs.Specs;
-        if (spec.ColumnIndex < 0 || spec.ColumnIndex >= keys.Length || spec.SortDirection == ImGuiSortDirection.None) return rows;
-        return TableSort.By(rows, keys[spec.ColumnIndex], spec.SortDirection == ImGuiSortDirection.Descending);
+        if (spec.ColumnIndex < 0 || spec.ColumnIndex >= keys.Length || spec.SortDirection == ImGuiSortDirection.None)
+        {
+            sortCache.Remove(table);
+            return rows;
+        }
+        if (sortCache.TryGetValue(table, out var c)
+            && c.Version == snap.Version && c.Column == spec.ColumnIndex && c.Direction == spec.SortDirection
+            && c.Rows is IReadOnlyList<T> cached)
+            return cached;
+        var sorted = TableSort.By(rows, keys[spec.ColumnIndex], spec.SortDirection == ImGuiSortDirection.Descending);
+        sortCache[table] = (snap.Version, spec.ColumnIndex, spec.SortDirection, sorted);
+        return sorted;
     }
 
     private static void DrawStale(StatusSnapshot snap, params PluginRequirement[] used)
@@ -308,7 +325,7 @@ public sealed class MainWindow : Window
             ImGui.TableSetupColumn("Salvage", ImGuiTableColumnFlags.WidthStretch | BigFirst, 2);
             ImGui.TableSetupColumn("Slots", ImGuiTableColumnFlags.WidthFixed | BigFirst, S(50));
             ImGui.TableHeadersRow();
-            foreach (var c in Sorted(b.Characters, c => c.Name, c => c.Value, c => c.Slots))
+            foreach (var c in Sorted("salvage-backlog-chars", snap, b.Characters, c => c.Name, c => c.Value, c => c.Slots))
             {
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
@@ -362,7 +379,7 @@ public sealed class MainWindow : Window
                 ImGui.TableSetupColumn("Salvage", ImGuiTableColumnFlags.WidthStretch | BigFirst, 2);
                 ImGui.TableSetupColumn("Total", ImGuiTableColumnFlags.WidthStretch | BigFirst, 2);
                 ImGui.TableHeadersRow();
-                var rows = Sorted(h.Rows, r => r.Name, r => r.World, r => r.Gil, r => r.RetainerGil,
+                var rows = Sorted("gil-holdings", snap, h.Rows, r => r.Name, r => r.World, r => r.Gil, r => r.RetainerGil,
                     r => h.SalvageKnown ? r.Salvage : null, r => r.Unread ? null : r.Total);
                 foreach (var r in rows)
                 {
@@ -786,7 +803,7 @@ public sealed class MainWindow : Window
                     ImGui.TableSetupColumn($"Reaches {target}", ImGuiTableColumnFlags.WidthStretch, 3);
                     ImGui.TableHeadersRow();
                     // days and dates sort by the worst case, the figure the projection uses
-                    var rows = Sorted(entries, e => e.Character, e => e.Hull, e => e.Rank, e => e.RouteLabel.Length == 0 ? null : e.RouteLabel,
+                    var rows = Sorted("levelling-hulls", snap, entries, e => e.Character, e => e.Hull, e => e.Rank, e => e.RouteLabel.Length == 0 ? null : e.RouteLabel,
                         e => e.Estimate?.VoyageHours, e => e.Estimate?.CycleHours, e => e.Estimate?.ExpWorst, e => e.DaysWorst, e => e.EtaWorst);
                     foreach (var e in rows)
                     {
@@ -883,7 +900,7 @@ public sealed class MainWindow : Window
                 ImGui.TableHeadersRow();
 
                 // Include sorts unticked first; ceruleum and kits lowest first, the ones that need a restock
-                var rows = Sorted(tracking.Characters, c => excluded.Contains(c.Key) ? 0 : 1, c => c.Name, c => c.World,
+                var rows = Sorted("tracking-characters", snap, tracking.Characters, c => excluded.Contains(c.Key) ? 0 : 1, c => c.Name, c => c.World,
                     c => tracking.HullsKnown ? c.Hulls : null, c => c.SentToday, c => c.DaysSilent, c => c.Ceruleum, c => c.RepairKits);
                 foreach (var c in rows)
                 {

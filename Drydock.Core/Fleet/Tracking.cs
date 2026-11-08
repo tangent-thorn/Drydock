@@ -119,12 +119,13 @@ public static class FleetTracking
     private static TrackedCharacter Row(AutoRetainerCharacter c, int hulls, long dayKey)
     {
         var sent = c.SentVoyagesByDay;
+        // a voyage AutoRetainer filed under a UTC day ahead of the local-noon anchor is activity now, never "-1 days silent"
         return new TrackedCharacter(
             c.Name,
             c.World,
             hulls,
             sent?.GetValueOrDefault(dayKey),
-            sent is null || sent.Count == 0 ? null : dayKey - sent.Keys.Max(),
+            sent is null || sent.Count == 0 ? null : Math.Max(dayKey - sent.Keys.Max(), 0),
             c.Ceruleum,
             c.RepairKits);
     }
