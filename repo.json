@@ -3,7 +3,7 @@
     "Author": "tangent-thorn",
     "Name": "Drydock",
     "InternalName": "Drydock",
-    "AssemblyVersion": "1.0.7.0",
+    "AssemblyVersion": "1.0.8.0",
     "TestingAssemblyVersion": null,
     "Description": "Fleet status, return timers, levelling progress, salvage income and restock needs for every submarine across your characters.\n\nRequires AutoRetainer (custom repo: https://love.puni.sh/ment.json) and Submarine Tracker. Allagan Tools and CashFlow add salvage and gil tracking.",
     "Punchline": "Fleet status, return timers, levelling progress, salvage income and restock needs for every submarine across your characters.",
@@ -26,10 +26,10 @@
     "IsHide": false,
     "IsTestingExclusive": false,
     "DownloadCount": 0,
-    "LastUpdate": "1794175904",
-    "DownloadLinkInstall": "https://github.com/tangent-thorn/Drydock/releases/download/v1.0.7/latest.zip",
-    "DownloadLinkTesting": "https://github.com/tangent-thorn/Drydock/releases/download/v1.0.7/latest.zip",
-    "DownloadLinkUpdate": "https://github.com/tangent-thorn/Drydock/releases/download/v1.0.7/latest.zip",
-    "Changelog": "- Click a column header to sort the tables on Gil, Salvage (per character),\n  Levelling and Tracking. Click again to flip it, a third time to go back."
+    "LastUpdate": "1794177800",
+    "DownloadLinkInstall": "https://github.com/tangent-thorn/Drydock/releases/download/v1.0.8/latest.zip",
+    "DownloadLinkTesting": "https://github.com/tangent-thorn/Drydock/releases/download/v1.0.8/latest.zip",
+    "DownloadLinkUpdate": "https://github.com/tangent-thorn/Drydock/releases/download/v1.0.8/latest.zip",
+    "Changelog": "- If an Allagan Tools update changes what inventories.csv's columns mean,\n  salvage now shows as unavailable with the reason instead of as wrong\n  numbers.\n- Only the recent part of Submarine Tracker's loot is read in full; the\n  lifetime counters come from the database itself. Refreshes stay fast\n  however old the database grows, and nothing visible changes.\n- Days silent no longer shows -1 when a voyage is filed under tomorrow's\n  day.\n- An FC header no longer shows another same-named character's \"sent today\".\n- Column sorting reuses its order between frames instead of resorting\n  every frame."
   }
 ]
