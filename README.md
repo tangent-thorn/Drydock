@@ -13,52 +13,35 @@ are no network calls and no telemetry.
 
 ## What's in it
 
-- **Overview**: salvage today with the last two weeks behind it, how many
-  subs are farming, how many are back, and how far you are from your next
-  milestone. Under that there's a timeline of everything coming back in
-  the next 24 hours, how many days of ceruleum and kits the fleet has
-  left, who's lowest on kits, and a warning when a character is running
-  low. It picks up your Dalamud theme colours too.
+- **Overview**: salvage today, how many subs are farming and back, your
+  next milestone, everything coming back in the next 24 hours, and who's
+  running low on ceruleum or kits.
+
 - **Fleet**: every sub grouped by FC, with rank, route and a countdown.
-- **Levelling**: every sub that isn't on a gil route yet, with its route,
-  voyage time, EXP per voyage, and how many days until it hits your target
-  rank (85 unless you change it) as a best to worst range with the dates.
-  It works off the game's own EXP table, each sub's actual parts and
-  route, and how often you really resend it, not a perfect schedule. Early
-  subs that would take forever on their current route get a typical range
-  instead (marked with a *), based off 68 real subs levelled from rank 1
-  while moving to better routes. Plus a rough rank spread of the fleet.
-- **Salvage**: today, yesterday, the 30 and 7 day averages and which way
-  it's trending, per sub per day, and a 90 day chart. It works out what
-  fuel and kits cost you per day so you see net, and how long your
-  ceruleum and kits will last. For each gil route you get your real gil
-  per voyage and cycle time next to what the route should make. If you
-  have Allagan Tools it also shows the salvage you're sitting on, per item
-  and per character, what it's worth and how many slots it's taking up.
-  Prices are the vendor sell prices of the eight salvage items.
-- **Gil**: gil on hand across all your characters and retainers (straight
-  from AutoRetainer), unsold salvage, and the total, with a table per
-  character.
-- **History**: Drydock saves one row a day on its own (gil, salvage held,
-  supplies, farming subs, salvage that day) and charts it, with what you
-  actually made each day next to what the model said you would. Once it's
-  seen 400 sectors it measures your real ceruleum and kit use per sector
-  and uses that for upkeep instead of the numbers in settings.
-- **Projection**: where your gil is headed over the next year. Subs that
-  are still levelling join the farm on their worst case date, so it leans
-  conservative. It shows when you'll hit your gil target (1B unless you
-  change it), where you'll be at 1, 3, 6 and 12 months, every milestone
-  along the way (250M apart by default), and what you make now compared to
-  once every sub is farming.
-- **Tracking**: what Drydock is reading for each character, subs, voyages
-  today, days since the last one, ceruleum and kits. Untick a character
-  and it's left out of everything. Every AutoRetainer character shows up
-  here whether it has subs or not. Subs AutoRetainer still remembers that
-  don't exist anymore are listed too so you know why they're being
-  ignored, same with FCs Submarine Tracker remembers for a character that
-  has since moved to a different FC.
+
+- **Levelling**: every sub not on a gil route yet, with EXP per voyage and
+  a best to worst range of days until it hits your target rank (85 by
+  default), based off its real parts, route and how often you resend it.
+
+- **Salvage**: today, the 7 and 30 day averages, a 90 day chart, net after
+  fuel and kits, and real gil per voyage against what each route should
+  make. With Allagan Tools it also shows the salvage you haven't sold yet.
+
+- **Gil**: gil across all your characters and retainers plus unsold
+  salvage, with a table per character.
+
+- **History**: one row a day of gil, salvage and supplies, charted against
+  what the model expected. After 400 sectors it uses your real fuel and kit
+  use instead of the settings.
+
+- **Projection**: where your gil is headed over the next year, when you'll
+  hit your target (1B by default), and every milestone along the way.
+
+- **Tracking**: what Drydock is reading per character. Untick one to leave
+  it out of everything.
+
 - A server info bar entry like "Subs 3 back, next in 1h 12m". Click it to
-  open Drydock, or turn it off in settings if you don't want it.
+  open Drydock, or turn it off in settings.
 
 A sub counts as farming when it's on one of the gil routes (OJ, MOJ, ROJ,
 JOZ, MROJ, MOJZ, JORZ, MROJZ, RZVOJ, MRVOJ), doesn't matter what rank it is.
