@@ -1,67 +1,71 @@
 # Drydock
 
-In-game dashboard for FFXIV submarines. Inspired from the massive spreadsheets
-many players with big fleets use to keep track of data. Compiles data from
-several other plugins then makes it readable.
+An in-game dashboard for your FFXIV submarines. It started from the giant
+spreadsheets a lot of people with big fleets end up keeping, so Drydock
+pulls the data the other plugins already have and puts it in one window
+you can actually read.
 
-
-Local only: Drydock reads the files the other plugins already keep on your
-PC and its own small database next to them. No network calls, no telemetry.
+Everything stays on your PC, it reads the files AutoRetainer and Submarine
+Tracker already keep plus a small database of its own next to them, there
+are no network calls and no telemetry.
 
 ![Overview](docs/overview.png)
 
-What's in it:
+## What's in it
 
-- **Overview**: cards for salvage today (with the last two weeks), how many
-  subs are farming, how many are back, and where you stand against your next
-  defined milestone. A timeline of everything coming back in the next 24
-  hours, how many days of ceruleum and kits the fleet has left, the characters
-  lowest on kits, and warnings for characters running low. Uses your Dalamud
-  theme colours.
-- **Fleet**: every sub grouped by FC, with rank, route and a live countdown.
+- **Overview**: salvage today with the last two weeks behind it, how many
+  subs are farming, how many are back, and how far you are from your next
+  milestone. Under that there's a timeline of everything coming back in
+  the next 24 hours, how many days of ceruleum and kits the fleet has
+  left, who's lowest on kits, and a warning when a character is running
+  low. It picks up your Dalamud theme colours too.
+- **Fleet**: every sub grouped by FC, with rank, route and a countdown.
 - **Levelling**: every sub that isn't on a gil route yet, with its route,
-  voyage time, EXP per voyage, and a best to worst range for the days left
-  to your target rank (85 unless you change it) and the dates. It works off
-  the game's own EXP table and each sub's real parts and route, and uses
-  how often you actually resend it. Early subs that would take forever on
-  their current route get a typical range instead (marked *), from 68 real
-  subs levelled from rank 1 while moving to better routes. Plus a rough
-  rank spread of the fleet.
-- **Salvage**: salvage today and yesterday, the 30 and 7 day average with
-  the trend, per sub per day, a 90 day chart, what fuel and kits cost you
-  per day, net, and how many days of ceruleum and kits you have left. Per
-  gil route it shows your real gil per voyage and cycle time next to what
-  the route is expected to make. With Allagan Tools installed it also shows the salvage you're
-  sitting on: per item, what it's worth and how many slots it takes, and per
-  character. Prices are the vendor sell prices of the eight salvage items.
-- **Gil**: gil on hand across characters and retainers (straight from
-  AutoRetainer), unsold salvage, and the total, with a table per character.
-- **History**: Drydock keeps one row a day of its own (gil, salvage held,
+  voyage time, EXP per voyage, and how many days until it hits your target
+  rank (85 unless you change it) as a best to worst range with the dates.
+  It works off the game's own EXP table, each sub's actual parts and
+  route, and how often you really resend it, not a perfect schedule. Early
+  subs that would take forever on their current route get a typical range
+  instead (marked with a *), based off 68 real subs levelled from rank 1
+  while moving to better routes. Plus a rough rank spread of the fleet.
+- **Salvage**: today, yesterday, the 30 and 7 day averages and which way
+  it's trending, per sub per day, and a 90 day chart. It works out what
+  fuel and kits cost you per day so you see net, and how long your
+  ceruleum and kits will last. For each gil route you get your real gil
+  per voyage and cycle time next to what the route should make. If you
+  have Allagan Tools it also shows the salvage you're sitting on, per item
+  and per character, what it's worth and how many slots it's taking up.
+  Prices are the vendor sell prices of the eight salvage items.
+- **Gil**: gil on hand across all your characters and retainers (straight
+  from AutoRetainer), unsold salvage, and the total, with a table per
+  character.
+- **History**: Drydock saves one row a day on its own (gil, salvage held,
   supplies, farming subs, salvage that day) and charts it, with what you
-  actually made per day next to what the model says. Once it has seen 400
-  sectors it measures your real ceruleum and kit use per sector and uses
-  that for upkeep instead of the settings.
-- **Projection**: where your gil is headed over the next year, with subs
-  that are still levelling joining the farm on their worst-case date. When
-  you hit your gil target (1B unless you change it), where you land at one,
-  three, six and twelve months, every milestone (250M apart unless you
-  change it), and what you make now against what you'll make once every
-  sub is farming.
-- **Tracking**: what Drydock is reading per character (subs, voyages today,
-  days since the last one, ceruleum, kits). Untick a character to leave it
-  out of everything. Every AutoRetainer character is listed, subs or not.
-  Subs AutoRetainer still remembers but that don't exist anymore are listed
-  there too, so you know why they're ignored, and so are FCs Submarine
-  Tracker remembers for a character who has since moved to another FC.
-- A server info bar entry: "Subs 3 back, next in 1h 12m". Click it to open
-  Drydock, or turn it off in settings.
+  actually made each day next to what the model said you would. Once it's
+  seen 400 sectors it measures your real ceruleum and kit use per sector
+  and uses that for upkeep instead of the numbers in settings.
+- **Projection**: where your gil is headed over the next year. Subs that
+  are still levelling join the farm on their worst case date, so it leans
+  conservative. It shows when you'll hit your gil target (1B unless you
+  change it), where you'll be at 1, 3, 6 and 12 months, every milestone
+  along the way (250M apart by default), and what you make now compared to
+  once every sub is farming.
+- **Tracking**: what Drydock is reading for each character, subs, voyages
+  today, days since the last one, ceruleum and kits. Untick a character
+  and it's left out of everything. Every AutoRetainer character shows up
+  here whether it has subs or not. Subs AutoRetainer still remembers that
+  don't exist anymore are listed too so you know why they're being
+  ignored, same with FCs Submarine Tracker remembers for a character that
+  has since moved to a different FC.
+- A server info bar entry like "Subs 3 back, next in 1h 12m". Click it to
+  open Drydock, or turn it off in settings if you don't want it.
 
 A sub counts as farming when it's on one of the gil routes (OJ, MOJ, ROJ,
-JOZ, MROJ, MOJZ, JORZ, MROJZ, RZVOJ, MRVOJ), whatever its rank.
+JOZ, MROJ, MOJZ, JORZ, MROJZ, RZVOJ, MRVOJ), doesn't matter what rank it is.
 
-On a fresh install the fuel and kit numbers are the defaults in
-settings until Drydock has a few days of its own history to measure them.
-Still keeping an eye on how close those land.
+On a fresh install the fuel and kit numbers come from the defaults in
+settings until Drydock has a few days of its own history to go off. I'm
+still keeping an eye on how close those defaults land.
 
 ## Screenshots
 
@@ -74,31 +78,36 @@ Example data
 
 ## Install
 
-Settings > Experimental > Custom Plugin Repositories, add
+In Dalamud go to Settings > Experimental > Custom Plugin Repositories and
+add
 
     https://raw.githubusercontent.com/tangent-thorn/Drydock/main/repo.json
 
 then install Drydock from /xlplugins.
 
-## What it needs
+## What you need
 
 - AutoRetainer, from the Puni.sh repo (https://love.puni.sh/ment.json). Required.
 - Submarine Tracker. Required.
 - Allagan Tools and CashFlow are optional. Allagan Tools adds the salvage
-  you haven't sold yet; CashFlow gives the upkeep your real repair kit price
-  (median of what you paid over the last 120 days) instead of the setting.
+  you haven't sold yet, and CashFlow lets upkeep use what you actually
+  paid for repair kits (the median over the last 120 days) instead of the
+  price in settings.
 
-If something's missing, `/drydock setup` tells you what and links the installer.
+If you're missing something, `/drydock setup` will tell you what and link
+the installer.
 
 ## Commands
 
-`/drydock` opens it. `/drydock setup`, `/drydock refresh`, `/drydock config`
-(or the cog in the window's title bar).
+`/drydock` opens it. There's also `/drydock setup`, `/drydock refresh` and
+`/drydock config` (or just hit the cog in the window's title bar).
 
-Settings has the warning limits (days quiet, low ceruleum, low kits), when
-data counts as stale, the info bar toggle, how often you resend subs
-(for the levelling dates), fuel and kit prices and usage per sector for
-the upkeep numbers, and the gil target and milestone step for the
+In settings you can change the warning limits (days quiet, low ceruleum,
+low kits), when data counts as stale, the info bar toggle, how often you
+resend subs (used for the levelling dates), fuel and kit prices and usage
+per sector for upkeep, and the gil target and milestone step for the
 projection.
+
+## License
 
 AGPL-3.0.
