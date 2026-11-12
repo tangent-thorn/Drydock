@@ -40,6 +40,9 @@ are no network calls and no telemetry.
 - **Tracking**: what Drydock is reading per character. Untick one to leave
   it out of everything.
 
+- The tables on Gil, Salvage, Levelling and Tracking have a Copy button
+  if you'd rather work the numbers in a spreadsheet.
+
 - A server info bar entry like "Subs 3 back, next in 1h 12m". Click it to
   open Drydock, or turn it off in settings.
 

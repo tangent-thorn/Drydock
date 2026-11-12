@@ -3,6 +3,14 @@
 What changed in each release. The section for a version is what shows in
 the plugin installer when you update.
 
+## 1.0.9
+
+- The tables on Gil, Salvage, Levelling and Tracking have a Copy button
+  now, it copies the table the way it's sorted so you can paste it straight
+  into a spreadsheet. Numbers come out as plain numbers so you can add them
+  up.
+- Reworded the plugin description in the installer.
+
 ## 1.0.8
 
 - If an Allagan Tools update changes what inventories.csv's columns mean,

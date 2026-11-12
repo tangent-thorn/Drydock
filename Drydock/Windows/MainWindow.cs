@@ -143,6 +143,19 @@ public sealed class MainWindow : Window
         return sorted;
     }
 
+    private string? copiedTable;
+    private DateTime copiedAt;
+
+    /// <summary>True on the frame the button was clicked: the caller then puts its table, in the order shown, on the clipboard.</summary>
+    private bool CopyButton(string table)
+    {
+        var copied = copiedTable == table && DateTime.UtcNow - copiedAt < TimeSpan.FromSeconds(1.5);
+        var clicked = ImGui.SmallButton($"{(copied ? "Copied" : "Copy")}###copy-{table}");
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip("Copy this table for a spreadsheet");
+        if (clicked) (copiedTable, copiedAt) = (table, DateTime.UtcNow);
+        return clicked;
+    }
+
     private static void DrawStale(StatusSnapshot snap, params PluginRequirement[] used)
     {
         foreach (var (requirement, note) in snap.StaleNotes)
@@ -206,6 +219,10 @@ public sealed class MainWindow : Window
         {
             ImGui.Spacing();
             ImGui.TextUnformatted("Routes");
+            ImGui.SameLine();
+            if (CopyButton("salvage-routes"))
+                ImGui.SetClipboardText(TableText.Build(["Route", "Hulls", "Voyages 30d", "Cycle (h)", "Gil/voyage", "Expected", "%"], e.Routes,
+                    r => [r.Route.Name, r.HullsNow, r.Voyages30, r.CycleHours, r.MeasuredGil, r.Route.SheetGil, r.PctOfSheet]));
             using (var table = ImRaii.Table("salvage-routes", 7, ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders | ImGuiTableFlags.SizingStretchProp))
             {
                 if (table)
@@ -280,6 +297,8 @@ public sealed class MainWindow : Window
         var byCharacterNote = snap.BacklogByCharacterNote;
         if (byCharacterNote is not null)
             ImGui.TextDisabled(byCharacterNote);
+        if (CopyButton("salvage-backlog"))
+            ImGui.SetClipboardText(TableText.Build(["Item", "Held", "Unit", "Value", "Slots"], b.Items, i => [i.Name, i.Held, i.Unit, i.Value, i.Slots]));
         using (var table = ImRaii.Table("salvage-backlog", 5, ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders | ImGuiTableFlags.SizingStretchProp))
         {
             if (table)
@@ -318,6 +337,7 @@ public sealed class MainWindow : Window
         }
 
         if (byCharacterNote is not null || b.Characters.Count == 0) return;
+        var copy = CopyButton("salvage-backlog-chars");
         using var chars = ImRaii.Table("salvage-backlog-chars", 3, SortableTable);
         if (chars)
         {
@@ -325,7 +345,10 @@ public sealed class MainWindow : Window
             ImGui.TableSetupColumn("Salvage", ImGuiTableColumnFlags.WidthStretch | BigFirst, 2);
             ImGui.TableSetupColumn("Slots", ImGuiTableColumnFlags.WidthFixed | BigFirst, S(50));
             ImGui.TableHeadersRow();
-            foreach (var c in Sorted("salvage-backlog-chars", snap, b.Characters, c => c.Name, c => c.Value, c => c.Slots))
+            var rows = Sorted("salvage-backlog-chars", snap, b.Characters, c => c.Name, c => c.Value, c => c.Slots);
+            if (copy)
+                ImGui.SetClipboardText(TableText.Build(["Character", "Salvage", "Slots"], rows, c => [c.Name, c.Value, c.Slots]));
+            foreach (var c in rows)
             {
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
@@ -368,6 +391,7 @@ public sealed class MainWindow : Window
             ImGui.TextDisabled("No ticked character holds any gil or salvage.");
             return;
         }
+        var copy = CopyButton("gil-holdings");
         using (var table = ImRaii.Table("gil-holdings", 6, SortableTable))
         {
             if (table)
@@ -381,6 +405,9 @@ public sealed class MainWindow : Window
                 ImGui.TableHeadersRow();
                 var rows = Sorted("gil-holdings", snap, h.Rows, r => r.Name, r => r.World, r => r.Gil, r => r.RetainerGil,
                     r => h.SalvageKnown ? r.Salvage : null, r => r.Unread ? null : r.Total);
+                if (copy)
+                    ImGui.SetClipboardText(TableText.Build(["Character", "World", "Gil", "Retainers", "Salvage", "Total"], rows,
+                        r => [r.Name, r.World, r.Gil, r.RetainerGil, h.SalvageKnown ? r.Salvage : null, r.Unread ? null : r.Total]));
                 foreach (var r in rows)
                 {
                     ImGui.TableNextRow();
@@ -765,6 +792,25 @@ public sealed class MainWindow : Window
     private static string Dates(DateOnly best, DateOnly worst, DateOnly today) =>
         best == worst ? DateLabels.Short(best, today) : DateLabels.Short(best, today) + " - " + DateLabels.Short(worst, today);
 
+    private static string CycleFrom(CycleSource source) =>
+        source switch { CycleSource.Measured => "measured", CycleSource.Cadence => "cadence", _ => "voyage" };
+
+    // the screen's ranges split into best and worst columns; days and dates are the typical ones when the row shows a *
+    private static object?[] LevellingCells(LevellingEntry e)
+    {
+        var est = e.Estimate;
+        var t = e.Typical;
+        var onRoute = t is null && est is { DaysBest: not null, DaysWorst: not null, EtaBest: not null, EtaWorst: not null };
+        return
+        [
+            e.Character, e.Hull, e.Rank, e.RouteLabel, est?.VoyageHours, est?.CycleHours, est is null ? null : CycleFrom(est.CycleSource),
+            est?.ExpWorst, est?.ExpBest,
+            t?.DaysBest ?? (onRoute ? est!.DaysBest : null), t?.DaysWorst ?? (onRoute ? est!.DaysWorst : null),
+            t?.EtaBest ?? (onRoute ? est!.EtaBest : null), t?.EtaWorst ?? (onRoute ? est!.EtaWorst : null),
+            t is not null ? "typical" : onRoute ? "current route" : null, e.Problem,
+        ];
+    }
+
     private void DrawLevelling(StatusSnapshot snap)
     {
         DrawStale(snap, PluginRequirements.AutoRetainer, PluginRequirements.SubmarineTracker);
@@ -788,6 +834,7 @@ public sealed class MainWindow : Window
             ImGui.TextUnformatted($"{entries.Count} hulls not farming" + (view.LastEta is { } last ? $", the last one reaches rank {target} by {DateLabels.Short(last, today)} at the worst" : ""));
             if (view.Unestimated > 0)
                 ImGui.TextDisabled($"{view.Unestimated} of them cannot be estimated yet; the table says why.");
+            var copy = CopyButton("levelling-hulls");
             using (var table = ImRaii.Table("levelling-hulls", 9, SortableTable))
             {
                 if (table)
@@ -805,6 +852,10 @@ public sealed class MainWindow : Window
                     // days and dates sort by the worst case, the figure the projection uses
                     var rows = Sorted("levelling-hulls", snap, entries, e => e.Character, e => e.Hull, e => e.Rank, e => e.RouteLabel.Length == 0 ? null : e.RouteLabel,
                         e => e.Estimate?.VoyageHours, e => e.Estimate?.CycleHours, e => e.Estimate?.ExpWorst, e => e.DaysWorst, e => e.EtaWorst);
+                    if (copy)
+                        ImGui.SetClipboardText(TableText.Build(["Character", "Submarine", "Rank", "Route", "Voyage (h)", "Cycle (h)", "Cycle from",
+                            "EXP per voyage worst", "EXP per voyage best", $"Days to {target} best", $"Days to {target} worst",
+                            $"Reaches {target} best", $"Reaches {target} worst", "Days from", "Problem"], rows, LevellingCells));
                     foreach (var e in rows)
                     {
                         ImGui.TableNextRow();
@@ -821,8 +872,7 @@ public sealed class MainWindow : Window
                             ImGui.TableNextColumn();
                             ImGui.TextUnformatted(est.VoyageHours.ToString("0.0", CultureInfo.InvariantCulture) + " h");
                             ImGui.TableNextColumn();
-                            ImGui.TextUnformatted(est.CycleHours.ToString("0.0", CultureInfo.InvariantCulture) + " h "
-                                + est.CycleSource switch { CycleSource.Measured => "measured", CycleSource.Cadence => "cadence", _ => "voyage" });
+                            ImGui.TextUnformatted(est.CycleHours.ToString("0.0", CultureInfo.InvariantCulture) + " h " + CycleFrom(est.CycleSource));
                             ImGui.TableNextColumn();
                             ImGui.TextUnformatted(Range(est.ExpWorst, est.ExpBest, "N0"));
                         }
@@ -885,6 +935,7 @@ public sealed class MainWindow : Window
         else ImGui.TextDisabled("AutoRetainer has no voyage record for these characters");
         if (tracking.Characters.All(c => excluded.Contains(c.Key)))
             ImGui.TextColored(StatusColors.Amber, TabGates.AllUnticked);
+        var copy = CopyButton("tracking-characters");
         using (var table = ImRaii.Table("tracking-characters", 8, SortableTable))
         {
             if (table)
@@ -902,6 +953,9 @@ public sealed class MainWindow : Window
                 // Include sorts unticked first; ceruleum and kits lowest first, the ones that need a restock
                 var rows = Sorted("tracking-characters", snap, tracking.Characters, c => excluded.Contains(c.Key) ? 0 : 1, c => c.Name, c => c.World,
                     c => tracking.HullsKnown ? c.Hulls : null, c => c.SentToday, c => c.DaysSilent, c => c.Ceruleum, c => c.RepairKits);
+                if (copy)
+                    ImGui.SetClipboardText(TableText.Build(["Include", "Character", "World", "Subs", "Sent today", "Days silent", "Ceruleum", "Repair kits"], rows,
+                        c => [excluded.Contains(c.Key) ? "no" : "yes", c.Name, c.World, tracking.HullsKnown ? c.Hulls : null, c.SentToday, c.DaysSilent, c.Ceruleum, c.RepairKits]));
                 foreach (var c in rows)
                 {
                     ImGui.TableNextRow();
