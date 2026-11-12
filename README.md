@@ -65,7 +65,7 @@ Still keeping an eye on how close those land.
 
 ## Screenshots
 
-Names swapped out, numbers are my real fleet.
+Example data
 
 | | |
 |---|---|
