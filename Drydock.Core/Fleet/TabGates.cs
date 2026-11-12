@@ -279,6 +279,13 @@ public static class TabGates
     public const string NoLoot = "Submarine Tracker has recorded no voyage yet, so there is no salvage to count. Let a submarine come back with Submarine Tracker loaded.";
     public static readonly string NoRecentLoot = $"Submarine Tracker has no voyage in the last {SubmarineTrackerDb.ReadWindowDays} days, so there is nothing current to count. Let a submarine come back with Submarine Tracker loaded.";
     public const string NoLootTicked = "Submarine Tracker has recorded no voyage for the ticked characters yet.";
+    public const string ExcludedByAutoRetainer = "Excluded from deployables in AutoRetainer";
+
+    /// <summary>The Tracking tab's line over the characters AutoRetainer excludes from deployables; null when there are none.</summary>
+    public static string? ExcludedByAutoRetainerNote(TrackingRead tracking) =>
+        tracking.Characters.Where(c => c.ExcludedByAutoRetainer).Select(c => c.Name).ToList() is { Count: > 0 } names
+            ? $"{ExcludedByAutoRetainer}: {string.Join(", ", names)}. Left out of every submarine figure; gil still counts. Clear the setting in AutoRetainer to count them again."
+            : null;
 
     private static string AutoRetainerError(string? error) =>
         $"Could not read AutoRetainer's config: {error}. Drydock tries again on the next refresh.";

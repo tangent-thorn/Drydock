@@ -307,12 +307,15 @@ internal sealed class PluginStatusService : IDisposable
                     var ar = HistoryRecorder.FreshOnly(results, PluginRequirements.AutoRetainer, arRead);
                     var inv = HistoryRecorder.FreshOnly(results, PluginRequirements.AllaganTools, inventory);
                     var tracking = ar?.Characters is null ? null : joined;
+                    // characters AutoRetainer excludes from deployables record no hulls, loot or supplies; their gil stays
+                    var arExcluded = CharacterFilter.WithAutoRetainer(new HashSet<string>(), arRead?.Characters);
                     SalvageBacklog? backlog = null;
                     // an inventory file whose owner column no longer looks right feeds nothing into the row
                     if (inv?.Rows is { } invRows && ar?.Characters is { } chars && InventoryToolsCsv.OwnersLookRight(invRows, chars.Select(c => c.Cid)))
                         backlog = BacklogMath.Compute(invRows, salvageNames, chars, new HashSet<string>());
                     var row = HistoryRecorder.Build(
-                        DateOnly.FromDateTime(DateTime.Now), DateTimeOffset.UtcNow.ToUnixTimeSeconds(), fleet!.Fleets!, loot!.Rows!,
+                        DateOnly.FromDateTime(DateTime.Now), DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                        CharacterFilter.Apply(fleet!.Fleets!, arExcluded), CharacterFilter.Apply(loot!.Rows!, arExcluded),
                         SalvageTable.DefaultPrices, ar?.Characters, tracking, backlog, TimeZoneInfo.Local,
                         (loot.LifetimeVoyages, loot.LifetimeSectors));
                     ct.ThrowIfCancellationRequested();

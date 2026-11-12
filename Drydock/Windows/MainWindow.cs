@@ -945,12 +945,15 @@ public sealed class MainWindow : Window
         if (!DrawGate(snap.Gates.Tracking)) return;
         var tracking = snap.Tracking!;
         var excluded = configuration.ExcludedCharacters;
+        bool Off(TrackedCharacter c) => c.ExcludedByAutoRetainer || excluded.Contains(c.Key);
         foreach (var note in snap.TrackingNotes)
             ImGui.TextDisabled(note);
 
         if (tracking.SentToday is { } sentToday) ImGui.TextDisabled($"{sentToday} sent today");
         else ImGui.TextDisabled("AutoRetainer has no voyage record for these characters");
-        if (tracking.Characters.All(c => excluded.Contains(c.Key)))
+        if (TabGates.ExcludedByAutoRetainerNote(tracking) is { } arNote)
+            ImGui.TextDisabled(arNote);
+        if (tracking.Characters.All(Off))
             ImGui.TextColored(StatusColors.Amber, TabGates.AllUnticked);
         var copy = CopyButton("tracking-characters");
         using (var table = ImRaii.Table("tracking-characters", 8, SortableTable))
@@ -968,23 +971,35 @@ public sealed class MainWindow : Window
                 ImGui.TableHeadersRow();
 
                 // Include sorts unticked first; ceruleum and kits lowest first, the ones that need a restock
-                var rows = Sorted("tracking-characters", snap, tracking.Characters, c => excluded.Contains(c.Key) ? 0 : 1, c => c.Name, c => c.World,
+                var rows = Sorted("tracking-characters", snap, tracking.Characters, c => Off(c) ? 0 : 1, c => c.Name, c => c.World,
                     c => tracking.HullsKnown ? c.Hulls : null, c => c.SentToday, c => c.DaysSilent, c => c.Ceruleum, c => c.RepairKits);
                 if (copy)
                     ImGui.SetClipboardText(TableText.Build(["Include", "Character", "World", "Subs", "Sent today", "Days silent", "Ceruleum", "Repair kits"], rows,
-                        c => [excluded.Contains(c.Key) ? "no" : "yes", c.Name, c.World, tracking.HullsKnown ? c.Hulls : null, c.SentToday, c.DaysSilent, c.Ceruleum, c.RepairKits]));
+                        c => [Off(c) ? "no" : "yes", c.Name, c.World, tracking.HullsKnown ? c.Hulls : null, c.SentToday, c.DaysSilent, c.Ceruleum, c.RepairKits]));
                 foreach (var c in rows)
                 {
                     ImGui.TableNextRow();
                     ImGui.TableNextColumn();
-                    var included = !excluded.Contains(c.Key);
-                    if (ImGui.Checkbox($"##include-{c.Key}", ref included))
+                    if (c.ExcludedByAutoRetainer)
                     {
-                        if (included) excluded.Remove(c.Key);
-                        else excluded.Add(c.Key);
-                        configuration.Save();
-                        status.Recompute();
-                        onExclusionsChanged();
+                        // shown off whatever the saved tick is, which stays as it was for when AutoRetainer's flag is cleared
+                        var off = false;
+                        using (ImRaii.Disabled())
+                            ImGui.Checkbox($"##include-{c.Key}", ref off);
+                        if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+                            ImGui.SetTooltip(TabGates.ExcludedByAutoRetainer);
+                    }
+                    else
+                    {
+                        var included = !excluded.Contains(c.Key);
+                        if (ImGui.Checkbox($"##include-{c.Key}", ref included))
+                        {
+                            if (included) excluded.Remove(c.Key);
+                            else excluded.Add(c.Key);
+                            configuration.Save();
+                            status.Recompute();
+                            onExclusionsChanged();
+                        }
                     }
                     ImGui.TableNextColumn();
                     ImGui.TextUnformatted(c.Name);

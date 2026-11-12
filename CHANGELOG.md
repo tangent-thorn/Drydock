@@ -3,6 +3,13 @@
 What changed in each release. The section for a version is what shows in
 the plugin installer when you update.
 
+## 1.0.11
+
+- A character you've excluded from deployables in AutoRetainer is now left
+  out of everything sub related in Drydock, its gil still counts on the Gil
+  tab. It stays listed on Tracking greyed out, and turning the setting back
+  off in AutoRetainer brings it back.
+
 ## 1.0.10
 
 - The Projection chart has a faint second line for the best case, where

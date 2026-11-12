@@ -164,15 +164,17 @@ public static class SnapshotBuilder
         }
 
         var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(nowUtc, zone));
-        var excluded = s.Excluded;
+        // AutoRetainer's "exclude from deployables" takes a character out of every submarine figure; its gil and held salvage stay
+        var excluded = CharacterFilter.WithAutoRetainer(s.Excluded, inputs.AutoRetainer?.Characters);
+        var subsView = s with { Excluded = excluded };
         var results = inputs.Results;
         var tracking = Join(inputs.Fleet, inputs.AutoRetainer, today, zone);
         var reads = new SourceReads(results, inputs.Fleet, inputs.AutoRetainer, inputs.Loot, tracking);
 
-        var plan = Plan(inputs, s, today, nowUtc);
+        var plan = Plan(inputs, subsView, today, nowUtc);
         var rates = RateChoice.Choose(inputs.Calibration, s.UseMeasuredRates, s.FuelPerSector, s.KitsPerSector);
         var kitChoice = KitPriceChoice.Choose(inputs.KitPrice, s.KitPrice);
-        var economics = Economics(inputs, tracking, s, rates, kitChoice.Price, today, zone);
+        var economics = Economics(inputs, tracking, subsView, rates, kitChoice.Price, today, zone);
 
         var gates = new SnapshotGates(
             TabGates.Fleet(reads),
@@ -181,7 +183,7 @@ public static class SnapshotBuilder
             TabGates.Loot(reads, excluded),
             TabGates.Production(reads, excluded),
             TabGates.Projection(reads, excluded, economics),
-            TabGates.Gil(reads, excluded),
+            TabGates.Gil(reads, s.Excluded),
             TabGates.Levelling(reads, excluded, inputs.GameData is not null, inputs.GameDataError));
 
         var tileEconomics = gates.Loot.IsOpen ? economics : null;
@@ -190,9 +192,9 @@ public static class SnapshotBuilder
         if (backlogReason is null)
         {
             // no AutoRetainer: every owner falls into the "Other" group and the ticks cannot apply
-            backlog = BacklogMath.Compute(inputs.Inventory!.Rows!, inputs.SalvageNames ?? SalvageTable.Defaults, inputs.AutoRetainer?.Characters ?? [], excluded);
+            backlog = BacklogMath.Compute(inputs.Inventory!.Rows!, inputs.SalvageNames ?? SalvageTable.Defaults, inputs.AutoRetainer?.Characters ?? [], s.Excluded);
         }
-        var holdings = inputs.AutoRetainer?.Characters is { } characters ? HoldingsMath.Compute(characters, backlog, excluded) : null;
+        var holdings = inputs.AutoRetainer?.Characters is { } characters ? HoldingsMath.Compute(characters, backlog, s.Excluded) : null;
 
         var ticked = inputs.Fleet?.Fleets is { } fleets ? CharacterFilter.Apply(fleets, excluded) : null;
         var subs = ticked is null ? [] : ticked.SelectMany(f => f.Submarines).ToList();
@@ -221,7 +223,7 @@ public static class SnapshotBuilder
         var g = SalvageMath.FormatGil;
         var farmingCount = OverviewTiles.FarmingCount(subs);
         var warnings = gates.Ticked.IsOpen ? FleetWarnings.Compute(tracking!, s.Thresholds, excluded, tileEconomics) : null;
-        var projection = gates.Projection.IsOpen ? ProjectionOf(reads, s, economics!, holdings, backlog, plan, today, g) : null;
+        var projection = gates.Projection.IsOpen ? ProjectionOf(reads, subsView, economics!, holdings, backlog, plan, today, g) : null;
         var tileReason = TabGates.TileReason(gates.Loot) ?? (tileEconomics is null ? "reading" : null);
         var suppliesNote = TabGates.SuppliesNote(reads);
         return new StatusSnapshot(version, today, raw, s, reads)
@@ -256,7 +258,7 @@ public static class SnapshotBuilder
             Projection = projection,
             History = HistoryOf(inputs, today, g),
             Overview = gates.Ticked.IsOpen
-                ? OverviewCards.Build(subs, farmingCount, tracking, s, tileEconomics, tileReason, gates.Gil, holdings, backlogReason, projection?.Result, suppliesNote, warnings, today)
+                ? OverviewCards.Build(subs, farmingCount, tracking, subsView, tileEconomics, tileReason, gates.Gil, holdings, backlogReason, projection?.Result, suppliesNote, warnings, today)
                 : null,
         };
     }

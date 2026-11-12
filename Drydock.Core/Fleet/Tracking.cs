@@ -8,6 +8,9 @@ namespace Drydock.Core.Fleet;
 public sealed record TrackedCharacter(string Name, string World, int Hulls, int? SentToday, long? DaysSilent, int? Ceruleum, int? RepairKits)
 {
     public string Key => CharacterFilter.Key(Name, World);
+
+    /// <summary>AutoRetainer excludes the character from deployables: it counts nowhere a submarine does, whatever its tick says.</summary>
+    public bool ExcludedByAutoRetainer { get; init; }
 }
 
 public sealed record PhantomEntry(string Character, string Entry);
@@ -25,7 +28,7 @@ public sealed record TrackingRead(IReadOnlyList<TrackedCharacter> Characters, IR
     /// listed so it can be unticked, but its missing voyage record or supplies say nothing about the fleet.
     /// </summary>
     public IEnumerable<TrackedCharacter> Counted(IReadOnlySet<string> excluded) =>
-        Characters.Where(c => !excluded.Contains(c.Key) && (!HullsKnown || c.Hulls > 0));
+        Characters.Where(c => !c.ExcludedByAutoRetainer && !excluded.Contains(c.Key) && (!HullsKnown || c.Hulls > 0));
 
     /// <summary>Voyages sent today over the characters that have a record; null when none has one.</summary>
     public int? SentToday => Characters.Any(c => c.SentToday.HasValue) ? Characters.Sum(c => c.SentToday ?? 0) : null;
@@ -127,7 +130,10 @@ public static class FleetTracking
             sent?.GetValueOrDefault(dayKey),
             sent is null || sent.Count == 0 ? null : Math.Max(dayKey - sent.Keys.Max(), 0),
             c.Ceruleum,
-            c.RepairKits);
+            c.RepairKits)
+        {
+            ExcludedByAutoRetainer = c.ExcludeWorkshop,
+        };
     }
 }
 
@@ -164,6 +170,21 @@ public static class OldCompanies
 public static class CharacterFilter
 {
     public static string Key(string name, string world) => name + "@" + world;
+
+    /// <summary>
+    /// The unticked characters plus those AutoRetainer excludes from deployables, for every figure about submarines.
+    /// Read from AutoRetainer's file each time, never saved, so clearing the flag there brings the character back.
+    /// </summary>
+    public static IReadOnlySet<string> WithAutoRetainer(IReadOnlySet<string> excluded, IReadOnlyList<AutoRetainerCharacter>? ar)
+    {
+        if (ar is null || !ar.Any(c => c.ExcludeWorkshop)) return excluded;
+        var all = new HashSet<string>(excluded, StringComparer.Ordinal);
+        foreach (var c in ar)
+        {
+            if (c.ExcludeWorkshop) all.Add(Key(c.Name, c.World));
+        }
+        return all;
+    }
 
     /// <summary>
     /// Drops the companies of unticked characters. Matches on the name alone: Submarine Tracker's world

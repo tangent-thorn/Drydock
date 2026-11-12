@@ -25,6 +25,9 @@ public sealed record AutoRetainerCharacter(
     /// <summary>The sum of the gil of the character's retainers; 0 when there are none, null when the list or any retainer's gil is missing.</summary>
     public long? RetainerGil { get; init; }
 
+    /// <summary>AutoRetainer's "exclude from deployables" for the character; false when the field is missing.</summary>
+    public bool ExcludeWorkshop { get; init; }
+
     public IEnumerable<string> AdditionalSubmarineNames => AdditionalSubmarines.Select(s => s.Name);
 }
 
@@ -89,6 +92,7 @@ public static class AutoRetainerConfig
                 {
                     Gil = Money(c, "Gil"),
                     RetainerGil = RetainerGilOf(c),
+                    ExcludeWorkshop = c.TryGetProperty("ExcludeWorkshop", out var ew) && ew.ValueKind == JsonValueKind.True,
                 });
             }
             return new(list, null);
