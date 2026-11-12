@@ -3,7 +3,7 @@
     "Author": "tangent-thorn",
     "Name": "Drydock",
     "InternalName": "Drydock",
-    "AssemblyVersion": "1.0.9.0",
+    "AssemblyVersion": "1.0.10.0",
     "TestingAssemblyVersion": null,
     "Description": "Fleet status, return timers, levelling progress, salvage income and restock needs for every submarine across your characters.\n\nRequires AutoRetainer (custom repo: https://love.puni.sh/ment.json) and Submarine Tracker. Allagan Tools and CashFlow add salvage and gil tracking.",
     "Punchline": "Fleet status, return timers, levelling progress, salvage income and restock needs for every submarine across your characters.",
@@ -26,10 +26,10 @@
     "IsHide": false,
     "IsTestingExclusive": false,
     "DownloadCount": 0,
-    "LastUpdate": "1794460843",
-    "DownloadLinkInstall": "https://github.com/tangent-thorn/Drydock/releases/download/v1.0.9/latest.zip",
-    "DownloadLinkTesting": "https://github.com/tangent-thorn/Drydock/releases/download/v1.0.9/latest.zip",
-    "DownloadLinkUpdate": "https://github.com/tangent-thorn/Drydock/releases/download/v1.0.9/latest.zip",
-    "Changelog": "- The tables on Gil, Salvage, Levelling and Tracking have a Copy button\n  now, it copies the table the way it's sorted so you can paste it straight\n  into a spreadsheet. Numbers come out as plain numbers so you can add them\n  up.\n- Reworded the plugin description in the installer."
+    "LastUpdate": "1794461056",
+    "DownloadLinkInstall": "https://github.com/tangent-thorn/Drydock/releases/download/v1.0.10/latest.zip",
+    "DownloadLinkTesting": "https://github.com/tangent-thorn/Drydock/releases/download/v1.0.10/latest.zip",
+    "DownloadLinkUpdate": "https://github.com/tangent-thorn/Drydock/releases/download/v1.0.10/latest.zip",
+    "Changelog": "- The Projection chart has a faint second line for the best case, where\n  every levelling sub starts farming on its best date instead of its worst.\n  Hover the chart to see both. Everything else on the tab still goes off\n  the worst case."
   }
 ]
