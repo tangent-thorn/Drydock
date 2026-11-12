@@ -470,8 +470,17 @@ public sealed class MainWindow : Window
 
         ImGui.Spacing();
         ImGui.TextUnformatted("Position over the next year");
-        DrawPlot("##projection-curve", view.CurveValues, i => $"{DateLabels.Short(p.Curve[i].Date, today)}: {g(p.Curve[i].Value)}", false,
-            view.CurveOverlay, 90, view.CurveDays);
+        if (view.BestCurve is { } best)
+        {
+            ImGui.SameLine();
+            ImGui.TextDisabled("(faint line: best case)");
+            DrawPlot("##projection-curve", view.CurveValues,
+                i => $"{DateLabels.Short(p.Curve[i].Date, today)}: worst {g(p.Curve[i].Value)}, best {g(best[i].Value)}", false,
+                view.CurveOverlay, 90, view.CurveDays, view.BestValues);
+        }
+        else
+            DrawPlot("##projection-curve", view.CurveValues, i => $"{DateLabels.Short(p.Curve[i].Date, today)}: {g(p.Curve[i].Value)}", false,
+                view.CurveOverlay, 90, view.CurveDays);
 
         ImGui.Spacing();
         ImGui.TextUnformatted("Horizons");
@@ -663,7 +672,9 @@ public sealed class MainWindow : Window
     // ImGui's own plots show a raw "83: 7.878e+06" tooltip that cannot be turned off, so the plots are drawn here.
     // The width is the content width, never -1: -1 drew 4 px wide in game.
     // Lines are spaced by date when days is given (one per point, ascending), never by point index.
-    private static void DrawPlot(string id, float[] values, Func<int, string> tip, bool bars, string overlay, float height, int[]? days = null)
+    // A faint line is drawn under the main one from faint, which shares its points and the y scale.
+    private static void DrawPlot(string id, float[] values, Func<int, string> tip, bool bars, string overlay, float height, int[]? days = null,
+        float[]? faint = null)
     {
         var size = new Vector2(Math.Max(ImGui.GetContentRegionAvail().X, S(10f)), S(height));
         var origin = ImGui.GetCursorScreenPos();
@@ -675,8 +686,8 @@ public sealed class MainWindow : Window
         var n = values.Length;
         if (n > 0)
         {
-            var lo = bars ? 0f : values.Min();
-            var hi = values.Max();
+            var lo = bars ? 0f : faint is null ? values.Min() : Math.Min(values.Min(), faint.Min());
+            var hi = faint is null ? values.Max() : Math.Max(values.Max(), faint.Max());
             if (hi <= lo) hi = lo + 1;
             var color = ImGui.GetColorU32(bars ? ImGuiCol.PlotHistogram : ImGuiCol.PlotLines);
             var pad = S(2);
@@ -696,6 +707,12 @@ public sealed class MainWindow : Window
                 float X(int i) => days is null
                     ? origin.X + size.X * i / (n - 1)
                     : ChartMath.XAtDay(days[i], days[0], days[^1], origin.X, end.X);
+                if (faint is not null)
+                {
+                    var dim = ImGui.GetColorU32(ImGuiCol.PlotLines, 0.35f);
+                    for (var i = 1; i < n; i++)
+                        dl.AddLine(new Vector2(X(i - 1), Y(faint[i - 1])), new Vector2(X(i), Y(faint[i])), dim, S(1.5f));
+                }
                 for (var i = 1; i < n; i++)
                     dl.AddLine(new Vector2(X(i - 1), Y(values[i - 1])), new Vector2(X(i), Y(values[i])), color, S(1.5f));
             }

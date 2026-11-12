@@ -68,6 +68,8 @@ public sealed record LevellingView(
 /// <param name="Holdings">Null without AutoRetainer.</param>
 /// <param name="NoGil">Where the start comes from when AutoRetainer's gil cannot be read.</param>
 /// <param name="Result">Null when the start position has no gil figure to stand on.</param>
+/// <param name="BestCurve">The curve with every levelling hull farming at its best-case date, on the same dates as
+/// <see cref="ProjectionResult.Curve"/>; null without a levelling plan or when it never differs.</param>
 public sealed record ProjectionView(
     HoldingsSummary? Holdings,
     ProjectionStartView? NoGil,
@@ -75,7 +77,9 @@ public sealed record ProjectionView(
     ProjectionResult? Result,
     float[] CurveValues,
     int[] CurveDays,
-    string CurveOverlay);
+    string CurveOverlay,
+    IReadOnlyList<ProjectionPoint>? BestCurve = null,
+    float[]? BestValues = null);
 
 /// <param name="Values">Empty below two points, which the tab says as "Not enough data yet".</param>
 public sealed record HistoryChartData(string Title, DateOnly[] Dates, float[] Values, int[] Days, string Overlay)
@@ -321,18 +325,25 @@ public static class SnapshotBuilder
         var subs = CharacterFilter.Apply(reads.Fleet!.Fleets!, s.Excluded).SelectMany(f => f.Submarines).ToList();
         var farming = subs.Count(x => x.RouteClass == RouteClass.Farming);
         // worst-case ETA on purpose. if it's off, the hull starts farming early, which is the better way to be wrong.
-        // TODO: maybe draw the best case as a second line once the ranges have a week of history to check against
+        // the best case is only the faint second line on the chart; every figure stays on the worst case.
+        static List<double> Etas(LevellingPlan plan, Func<LevellingEntry, int?> days) =>
+            plan.Entries.Select(x => days(x) is { } d ? (double)d : double.PositiveInfinity).ToList();
         var etas = plan is not null
-            ? plan.Entries.Select(x => x.DaysWorst is { } d ? (double)d : double.PositiveInfinity).ToList()
+            ? Etas(plan, x => x.DaysWorst)
             : Enumerable.Repeat(double.PositiveInfinity, subs.Count - farming).ToList();
         var m = e.Model;
-        var result = ProjectionMath.Compute(
-            position, farming, etas, m.PerHull, m.SecPerEnd, m.SecPerLvl, m.CostPerSector,
-            farming + etas.Count, m.PerDay, m.UpkeepDay, s.GilTarget, today, s.MilestoneStep);
+        ProjectionResult Run(List<double> levelling) => ProjectionMath.Compute(
+            position, farming, levelling, m.PerHull, m.SecPerEnd, m.SecPerLvl, m.CostPerSector,
+            farming + levelling.Count, m.PerDay, m.UpkeepDay, s.GilTarget, today, s.MilestoneStep);
+        var result = Run(etas);
+        var best = plan is not null ? Run(Etas(plan, x => x.DaysBest)).Curve : null;
+        if (best is not null && best.Select(c => c.Value).SequenceEqual(result.Curve.Select(c => c.Value))) best = null;
 
         var values = result.Curve.Select(c => (float)c.Value).ToArray();
-        var overlay = $"{DateLabels.Range(result.Curve[0].Date, result.Curve[^1].Date, today)}, {g(values.Min())} to {g(values.Max())}";
-        return new(holdings, noGil, plan is not null, result, values, result.Curve.Select(c => c.Date.DayNumber).ToArray(), overlay);
+        var bestValues = best?.Select(c => (float)c.Value).ToArray();
+        var shown = bestValues is null ? values : [.. values, .. bestValues];
+        var overlay = $"{DateLabels.Range(result.Curve[0].Date, result.Curve[^1].Date, today)}, {g(shown.Min())} to {g(shown.Max())}";
+        return new(holdings, noGil, plan is not null, result, values, result.Curve.Select(c => c.Date.DayNumber).ToArray(), overlay, best, bestValues);
     }
 
     private static HistoryView? HistoryOf(SourceInputs inputs, DateOnly today, Func<double, string> g)

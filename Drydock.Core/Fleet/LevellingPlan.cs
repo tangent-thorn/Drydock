@@ -39,6 +39,8 @@ public sealed record LevellingEntry(string Character, string World, string Hull,
 
     public int? DaysWorst => Typical?.DaysWorst ?? Estimate?.DaysWorst;
 
+    public int? DaysBest => Typical?.DaysBest ?? Estimate?.DaysBest;
+
     public DateOnly? EtaWorst => Typical?.EtaWorst ?? Estimate?.EtaWorst;
 }
 

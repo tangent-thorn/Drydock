@@ -3,6 +3,13 @@
 What changed in each release. The section for a version is what shows in
 the plugin installer when you update.
 
+## 1.0.10
+
+- The Projection chart has a faint second line for the best case, where
+  every levelling sub starts farming on its best date instead of its worst.
+  Hover the chart to see both. Everything else on the tab still goes off
+  the worst case.
+
 ## 1.0.9
 
 - The tables on Gil, Salvage, Levelling and Tracking have a Copy button

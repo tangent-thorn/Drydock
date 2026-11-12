@@ -35,7 +35,8 @@ are no network calls and no telemetry.
   use instead of the settings.
 
 - **Projection**: where your gil is headed over the next year, when you'll
-  hit your target (1B by default), and every milestone along the way.
+  hit your target (1B by default), and every milestone along the way. A
+  faint second line shows the best case.
 
 - **Tracking**: what Drydock is reading per character. Untick one to leave
   it out of everything.
