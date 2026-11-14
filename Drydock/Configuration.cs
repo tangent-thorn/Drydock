@@ -34,6 +34,9 @@ public class Configuration : IPluginConfiguration
 
     public int RunwayDays { get; set; } = 14;
 
+    /// <summary>FC credits read longer ago than this show amber on the FC Points tab.</summary>
+    public int FcPointsStaleDays { get; set; } = FcPointsMath.DefaultStaleDays;
+
     /// <summary>Use the ceruleum and kit use measured from Drydock's own history instead of the two settings above.</summary>
     public bool UseMeasuredRates { get; set; } = true;
 
@@ -62,6 +65,7 @@ public class Configuration : IPluginConfiguration
         FuelPerSector = ConfigLimits.Double(FuelPerSector, 0, 1000, 4.5);
         KitsPerSector = ConfigLimits.Double(KitsPerSector, 0, 1000, 0.872);
         RunwayDays = ConfigLimits.Int(RunwayDays, 1, 365);
+        FcPointsStaleDays = ConfigLimits.Int(FcPointsStaleDays, 1, 365);
         GilTarget = ConfigLimits.Long(GilTarget, ProjectionMath.MinTarget, ProjectionMath.MaxTarget);
         MilestoneStep = ConfigLimits.Long(MilestoneStep, ProjectionMath.MinMilestoneStep, ProjectionMath.MaxTarget);
         ExcludedCharacters ??= [];

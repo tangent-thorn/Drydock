@@ -48,6 +48,7 @@ public sealed class ConfigWindow : Window
             Int("Low ceruleum below", configuration.LowCeruleum, 0, 100000, v => configuration.LowCeruleum = v);
             Int("Low repair kits below", configuration.LowRepairKits, 0, 100000, v => configuration.LowRepairKits = v);
             Int("Supply runway warning below (days)", configuration.RunwayDays, 1, 365, v => configuration.RunwayDays = v);
+            Int("FC credits stale after (days)", configuration.FcPointsStaleDays, 1, 365, v => configuration.FcPointsStaleDays = v);
         }
 
         if (ImGui.CollapsingHeader("Levelling", ImGuiTreeNodeFlags.DefaultOpen))

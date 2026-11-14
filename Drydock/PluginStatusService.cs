@@ -1,4 +1,5 @@
 using Dalamud.Plugin;
+using FccShop = Lumina.Excel.Sheets.FccShop;
 using Item = Lumina.Excel.Sheets.Item;
 using SubmarineExploration = Lumina.Excel.Sheets.SubmarineExploration;
 using SubmarinePart = Lumina.Excel.Sheets.SubmarinePart;
@@ -134,7 +135,7 @@ internal sealed class PluginStatusService : IDisposable
     private ViewSettings CaptureSettings() => new(
         config.ExcludedCharacters.ToHashSet(StringComparer.Ordinal), config.SilentDays, config.LowCeruleum, config.LowRepairKits, config.RunwayDays,
         config.ResendCadenceHours, config.TargetRank, config.GilTarget, config.FuelPrice, config.KitPrice, config.FuelPerSector, config.KitsPerSector,
-        config.UseMeasuredRates, config.MilestoneStep);
+        config.UseMeasuredRates, config.MilestoneStep, config.FcPointsStaleDays);
 
     private void Start()
     {
@@ -232,6 +233,7 @@ internal sealed class PluginStatusService : IDisposable
             (gameData, gameDataError) = LoadGameData();
             if (gameData is not null) sectors = gameData.SectorLabels();
         }
+        var tankPrice = held.TankCreditPriceFromGame ?? LoadTankPrice();
         var joined = SnapshotBuilder.Join(fleet, arRead, today, TimeZoneInfo.Local);
         ct.ThrowIfCancellationRequested();
         RecordHistory(results, fleet, loot, arRead, joined, inventory, salvageNames, (fleetCache.Key, lootCache.Key, arCache.Key, inventoryCache.Key, today.DayNumber), ct);
@@ -248,6 +250,7 @@ internal sealed class PluginStatusService : IDisposable
             Sectors = sectors,
             GameData = gameData,
             GameDataError = gameDataError,
+            TankCreditPriceFromGame = tankPrice,
         });
     }
 
@@ -396,6 +399,41 @@ internal sealed class PluginStatusService : IDisposable
         {
             Plugin.Log.Warning(ex, "Drydock could not read item names");
             return SalvageTable.Defaults;
+        }
+    }
+
+    // The Ceruleum Tank's credit price at the Company Credit Exchange, the lowest if it is listed more than once. Null when
+    // it cannot be read, so Core falls back to the usual price; retried on the next refresh while it is null.
+    private static int? LoadTankPrice()
+    {
+        try
+        {
+            var sheet = Plugin.DataManager.GetExcelSheet<FccShop>();
+            if (sheet is null)
+            {
+                if (readerErrors.First("FccShop missing")) Plugin.Log.Warning("Drydock could not read the tank price: the FccShop sheet is not available");
+                return null;
+            }
+            uint? lowest = null;
+            foreach (var shop in sheet)
+            {
+                foreach (var entry in shop.ItemData)
+                {
+                    if (entry.Item.RowId != FcPointsMath.TankItemId || entry.Cost == 0) continue;
+                    if (lowest is null || entry.Cost < lowest) lowest = entry.Cost;
+                }
+            }
+            if (lowest is null)
+            {
+                if (readerErrors.First("FccShop no tank")) Plugin.Log.Warning("Drydock could not read the tank price: the FccShop sheet does not list the Ceruleum Tank");
+                return null;
+            }
+            return (int)Math.Min(lowest.Value, int.MaxValue);
+        }
+        catch (Exception ex)
+        {
+            if (readerErrors.First("FccShop " + ex.Message)) Plugin.Log.Warning(ex, "Drydock could not read the tank price");
+            return null;
         }
     }
 

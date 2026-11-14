@@ -68,6 +68,7 @@ public sealed class MainWindow : Window
         if (!tabs) return;
         Tab("Overview", snap, DrawOverview);
         Tab("Fleet", snap, DrawFleet);
+        Tab("FC Points", snap, DrawFcPoints);
         Tab("Levelling", snap, DrawLevelling);
         Tab("Salvage", snap, DrawSalvage);
         Tab("Gil", snap, DrawGil);
@@ -801,6 +802,84 @@ public sealed class MainWindow : Window
                 }
             }
         }
+    }
+
+    private static void FcCellText(FcCell cell)
+    {
+        ImGui.TextUnformatted(cell.Text);
+        if (cell.Tooltip is { } tip && ImGui.IsItemHovered()) ImGui.SetTooltip(tip);
+    }
+
+    private void DrawFcPoints(StatusSnapshot snap)
+    {
+        DrawStale(snap, PluginRequirements.AutoRetainer, PluginRequirements.SubmarineTracker);
+        if (!DrawGate(snap.Gates.FcPoints)) return;
+        if (snap.FcPoints is not { } view)
+        {
+            ImGui.TextDisabled("Reading...");
+            return;
+        }
+
+        ImGui.TextUnformatted(FcPointsText.Totals(view));
+        ImGui.TextDisabled(FcPointsText.OncePerFc);
+        ImGui.TextDisabled(FcPointsText.PriceLine(view));
+        ImGui.TextDisabled(FcPointsText.WhenUpdated);
+
+        var copy = CopyButton("fc-points");
+        using (var table = ImRaii.Table("fc-points", 10, SortableTable))
+        {
+            if (table)
+            {
+                ImGui.TableSetupColumn("FC", ImGuiTableColumnFlags.WidthStretch, 3);
+                ImGui.TableSetupColumn("Characters", ImGuiTableColumnFlags.WidthStretch, 4);
+                ImGui.TableSetupColumn("Rank", ImGuiTableColumnFlags.WidthFixed | BigFirst, S(45));
+                ImGui.TableSetupColumn("Credits", ImGuiTableColumnFlags.WidthFixed | BigFirst, S(80));
+                ImGui.TableSetupColumn("As of", ImGuiTableColumnFlags.WidthFixed | BigFirst, S(70));
+                ImGui.TableSetupColumn("Tanks buyable", ImGuiTableColumnFlags.WidthFixed | BigFirst, S(100));
+                ImGui.TableSetupColumn("Tanks/day", ImGuiTableColumnFlags.WidthFixed | BigFirst, S(75));
+                ImGui.TableSetupColumn("Days from credits", ImGuiTableColumnFlags.WidthFixed, S(125));
+                ImGui.TableSetupColumn("On hand", ImGuiTableColumnFlags.WidthFixed | BigFirst, S(70));
+                ImGui.TableSetupColumn("Days with stock", ImGuiTableColumnFlags.WidthFixed, S(115));
+                ImGui.TableHeadersRow();
+                // the days sort shortest first, the FCs that run out soonest
+                var rows = Sorted("fc-points", snap, view.Rows, r => r.Name, FcPointsText.Members, r => r.Rank, r => r.Points, r => r.PointsAgeDays,
+                    r => r.TanksBuyable, r => r.TanksPerDay, r => r.DaysFromPoints, r => r.TanksOnHand, r => r.DaysWithStock);
+                if (copy)
+                    ImGui.SetClipboardText(TableText.Build(["FC", "Characters", "Rank", "Credits", "Credits age (days)", "Tanks buyable", "Tanks/day",
+                        "Days from credits", "On hand", "Days with stock"], rows,
+                        r => [r.Name, FcPointsText.Members(r), r.Rank, r.Points, r.PointsAgeDays, r.TanksBuyable, r.TanksPerDay,
+                            r.DaysFromPoints, r.TanksOnHand, r.DaysWithStock]));
+                foreach (var r in rows)
+                {
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.TextUnformatted(r.Name);
+                    ImGui.TableNextColumn();
+                    ImGui.TextUnformatted(FcPointsText.Members(r));
+                    ImGui.TableNextColumn();
+                    if (r.Rank is { } rank && rank < view.RankNeeded) ImGui.TextColored(StatusColors.Amber, rank.ToString(CultureInfo.InvariantCulture));
+                    else ImGui.TextUnformatted(r.Rank?.ToString(CultureInfo.InvariantCulture) ?? "-");
+                    ImGui.TableNextColumn();
+                    ImGui.TextUnformatted(r.Points is { } p ? p.ToString("N0", CultureInfo.InvariantCulture) : "-");
+                    ImGui.TableNextColumn();
+                    if (r.Stale) ImGui.TextColored(StatusColors.Amber, FcPointsText.Age(r.PointsAgeDays));
+                    else ImGui.TextUnformatted(FcPointsText.Age(r.PointsAgeDays));
+                    ImGui.TableNextColumn();
+                    FcCellText(FcPointsText.Buyable(r));
+                    ImGui.TableNextColumn();
+                    ImGui.TextUnformatted(r.TanksPerDay is { } d ? d.ToString("0.0", CultureInfo.InvariantCulture) : "-");
+                    ImGui.TableNextColumn();
+                    FcCellText(FcPointsText.DaysFromPoints(r));
+                    ImGui.TableNextColumn();
+                    ImGui.TextUnformatted(r.TanksOnHand is { } h ? h.ToString("N0", CultureInfo.InvariantCulture) : "-");
+                    ImGui.TableNextColumn();
+                    FcCellText(FcPointsText.DaysWithStock(r));
+                }
+            }
+        }
+
+        foreach (var note in FcPointsText.Footnotes(view))
+            ImGui.TextDisabled(note);
     }
 
     private static string Range(long lo, long hi, string format) =>
