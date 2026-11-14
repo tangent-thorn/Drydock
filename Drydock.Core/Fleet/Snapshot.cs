@@ -164,7 +164,7 @@ public static class SnapshotBuilder
         }
 
         var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(nowUtc, zone));
-        // AutoRetainer's "exclude from deployables" takes a character out of every submarine figure; its gil and held salvage stay
+        // AutoRetainer's "exclude from deployables" takes a character out of every submarine figure; its gil, held salvage and supply stock stay
         var excluded = CharacterFilter.WithAutoRetainer(s.Excluded, inputs.AutoRetainer?.Characters);
         var subsView = s with { Excluded = excluded };
         var results = inputs.Results;
@@ -174,7 +174,8 @@ public static class SnapshotBuilder
         var plan = Plan(inputs, subsView, today, nowUtc);
         var rates = RateChoice.Choose(inputs.Calibration, s.UseMeasuredRates, s.FuelPerSector, s.KitsPerSector);
         var kitChoice = KitPriceChoice.Choose(inputs.KitPrice, s.KitPrice);
-        var economics = Economics(inputs, tracking, subsView, rates, kitChoice.Price, today, zone);
+        // the ticks alone: an excluded character's subs leave the economics through its flag on tracking, its stock stays
+        var economics = Economics(inputs, tracking, s, rates, kitChoice.Price, today, zone);
 
         var gates = new SnapshotGates(
             TabGates.Fleet(reads),

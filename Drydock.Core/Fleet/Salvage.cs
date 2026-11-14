@@ -229,39 +229,42 @@ public static class SalvageMath
     /// <summary>
     /// The economics for the ticked characters from a loot read. Voyages and hulls are told apart as endgame or levelling by
     /// route; a loot table without a Sector column (an older Submarine Tracker) falls back to rank 85, the collector's rule.
+    /// <paramref name="unticked"/> is the Tracking tab's ticks alone: a character AutoRetainer excludes from deployables
+    /// (flagged on <paramref name="tracking"/>) is left out of the loot, hulls and use, but its stock counts.
     /// </summary>
     public static SalvageEconomics ComputeFor(
         IReadOnlyList<LootRow> rows,
         bool hasSectors,
         IReadOnlyList<FreeCompanyFleet> fleets,
         TrackingRead? tracking,
-        IReadOnlySet<string> excluded,
+        IReadOnlySet<string> unticked,
         EconomicsSettings settings,
         DateOnly today,
         TimeZoneInfo zone)
     {
+        var excluded = tracking?.WithExcludedByAutoRetainer(unticked) ?? unticked;
         var loot = CharacterFilter.Apply(rows, excluded);
         if (hasSectors)
-            return Compute(loot, SalvageTable.DefaultPrices, FleetInputsByRoute(fleets, tracking, excluded), settings, today, zone, EndgameRule.ByRoute);
+            return Compute(loot, SalvageTable.DefaultPrices, FleetInputsByRoute(fleets, tracking, unticked), settings, today, zone, EndgameRule.ByRoute);
 
         var ticked = CharacterFilter.Apply(fleets, excluded);
         var levelling = FleetLevelling.CountPerCharacter(ticked) - FleetLevelling.CountAt85(ticked);
-        return Compute(loot, SalvageTable.DefaultPrices, FleetInputs(fleets, tracking, levelling, excluded), settings, today, zone, EndgameRule.ByRank85);
+        return Compute(loot, SalvageTable.DefaultPrices, FleetInputs(fleets, tracking, levelling, unticked), settings, today, zone, EndgameRule.ByRank85);
     }
 
     /// <summary>Hull counts and stock of the characters that are ticked; <paramref name="levellingHulls"/> is the ticked levelling list's length.</summary>
-    public static EconomicsFleet FleetInputs(IReadOnlyList<FreeCompanyFleet> fleets, TrackingRead? tracking, int levellingHulls, IReadOnlySet<string> excluded)
+    public static EconomicsFleet FleetInputs(IReadOnlyList<FreeCompanyFleet> fleets, TrackingRead? tracking, int levellingHulls, IReadOnlySet<string> unticked)
     {
-        var (cer, kits) = tracking is null ? (null, null) : FleetTracking.SupplyTotals(tracking, excluded);
-        var ticked = CharacterFilter.Apply(fleets, excluded);
+        var (cer, kits) = tracking is null ? (null, null) : FleetTracking.SupplyTotals(tracking, unticked);
+        var ticked = CharacterFilter.Apply(fleets, tracking?.WithExcludedByAutoRetainer(unticked) ?? unticked);
         return new(FleetLevelling.CountAt85(ticked), levellingHulls, cer, kits, FleetLevelling.HullsPerGilRoute(ticked));
     }
 
     /// <summary>The same by route: farming hulls are the endgame count, hulls on any other route the levelling count.</summary>
-    public static EconomicsFleet FleetInputsByRoute(IReadOnlyList<FreeCompanyFleet> fleets, TrackingRead? tracking, IReadOnlySet<string> excluded)
+    public static EconomicsFleet FleetInputsByRoute(IReadOnlyList<FreeCompanyFleet> fleets, TrackingRead? tracking, IReadOnlySet<string> unticked)
     {
-        var (cer, kits) = tracking is null ? (null, null) : FleetTracking.SupplyTotals(tracking, excluded);
-        var ticked = CharacterFilter.Apply(fleets, excluded);
+        var (cer, kits) = tracking is null ? (null, null) : FleetTracking.SupplyTotals(tracking, unticked);
+        var ticked = CharacterFilter.Apply(fleets, tracking?.WithExcludedByAutoRetainer(unticked) ?? unticked);
         return new(
             FleetLevelling.CountByRoute(ticked, RouteClass.Farming),
             FleetLevelling.CountByRoute(ticked, RouteClass.Levelling),

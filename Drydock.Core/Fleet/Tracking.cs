@@ -28,7 +28,26 @@ public sealed record TrackingRead(IReadOnlyList<TrackedCharacter> Characters, IR
     /// listed so it can be unticked, but its missing voyage record or supplies say nothing about the fleet.
     /// </summary>
     public IEnumerable<TrackedCharacter> Counted(IReadOnlySet<string> excluded) =>
-        Characters.Where(c => !c.ExcludedByAutoRetainer && !excluded.Contains(c.Key) && (!HullsKnown || c.Hulls > 0));
+        Stocked(excluded).Where(c => !c.ExcludedByAutoRetainer);
+
+    /// <summary>
+    /// The characters whose ceruleum and kits are fleet stock: ticked on the Tracking tab and owning a hull. One that
+    /// AutoRetainer excludes from deployables stays in, as its gil does: its stock is still there to send subs with.
+    /// </summary>
+    public IEnumerable<TrackedCharacter> Stocked(IReadOnlySet<string> unticked) =>
+        Characters.Where(c => !unticked.Contains(c.Key) && (!HullsKnown || c.Hulls > 0));
+
+    /// <summary>The unticked characters plus those AutoRetainer excludes from deployables, for every figure about running submarines.</summary>
+    public IReadOnlySet<string> WithExcludedByAutoRetainer(IReadOnlySet<string> unticked)
+    {
+        if (!Characters.Any(c => c.ExcludedByAutoRetainer)) return unticked;
+        var all = new HashSet<string>(unticked, StringComparer.Ordinal);
+        foreach (var c in Characters)
+        {
+            if (c.ExcludedByAutoRetainer) all.Add(c.Key);
+        }
+        return all;
+    }
 
     /// <summary>Voyages sent today over the characters that have a record; null when none has one.</summary>
     public int? SentToday => Characters.Any(c => c.SentToday.HasValue) ? Characters.Sum(c => c.SentToday ?? 0) : null;
@@ -47,12 +66,12 @@ public static class FleetTracking
     }
 
     /// <summary>
-    /// The ceruleum and repair kits over the ticked characters. A total is null when any of them lacks the figure,
-    /// or when none is ticked: a partial sum would pass for the whole stock.
+    /// The ceruleum and repair kits over the ticked characters, AutoRetainer's excluded ones included. A total is null
+    /// when any of them lacks the figure, or when none is ticked: a partial sum would pass for the whole stock.
     /// </summary>
-    public static (int? Ceruleum, int? RepairKits) SupplyTotals(TrackingRead tracking, IReadOnlySet<string> excluded)
+    public static (int? Ceruleum, int? RepairKits) SupplyTotals(TrackingRead tracking, IReadOnlySet<string> unticked)
     {
-        var chars = tracking.Counted(excluded).ToList();
+        var chars = tracking.Stocked(unticked).ToList();
         if (chars.Count == 0) return (null, null);
         return (
             chars.All(c => c.Ceruleum.HasValue) ? chars.Sum(c => c.Ceruleum!.Value) : null,

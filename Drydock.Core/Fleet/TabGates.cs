@@ -284,7 +284,7 @@ public static class TabGates
     /// <summary>The Tracking tab's line over the characters AutoRetainer excludes from deployables; null when there are none.</summary>
     public static string? ExcludedByAutoRetainerNote(TrackingRead tracking) =>
         tracking.Characters.Where(c => c.ExcludedByAutoRetainer).Select(c => c.Name).ToList() is { Count: > 0 } names
-            ? $"{ExcludedByAutoRetainer}: {string.Join(", ", names)}. Left out of every submarine figure; gil still counts. Clear the setting in AutoRetainer to count them again."
+            ? $"{ExcludedByAutoRetainer}: {string.Join(", ", names)}. Left out of every submarine figure; gil and the ceruleum and kit stock still count. Clear the setting in AutoRetainer to count them again."
             : null;
 
     private static string AutoRetainerError(string? error) =>

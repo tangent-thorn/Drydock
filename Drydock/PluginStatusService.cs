@@ -65,7 +65,7 @@ internal sealed class PluginStatusService : IDisposable
     private readonly ReadCache<InventoryRead> inventoryCache = new();
     private readonly ReadCache<KitPriceRead> kitPriceCache = new();
     private readonly AutoRetainerIpc arIpc;
-    private (SourceKey?, SourceKey?, SourceKey?, SourceKey?, int, string)? historyInputs;
+    private (SourceKey?, SourceKey?, SourceKey?, SourceKey?, int)? historyInputs;
     private bool historyDirty = true;
     private readonly CancellationTokenSource cts = new();
     private static readonly TimeSpan StopTimeout = TimeSpan.FromSeconds(2);
@@ -214,7 +214,6 @@ internal sealed class PluginStatusService : IDisposable
         ct.ThrowIfCancellationRequested();
         // asked on every refresh, cached file or not: the flag AutoRetainer holds now wins over the one it last wrote
         var arRead = arFile?.Characters is null ? arFile : AutoRetainerConfig.WithLiveExclusions(arFile, arIpc.ReadExclusions(ct));
-        var arExcludedKey = string.Join(",", arRead?.Characters?.Where(c => c.ExcludeWorkshop).Select(c => c.Cid) ?? []);
         ct.ThrowIfCancellationRequested();
         var loot = Cached(lootCache, st, staleDays,
             () => Guard(() => SubmarineTrackerDb.ReadLoot(PathFor(st.Requirement), DateTime.UtcNow), e => new LootRead(null, e)));
@@ -235,7 +234,7 @@ internal sealed class PluginStatusService : IDisposable
         }
         var joined = SnapshotBuilder.Join(fleet, arRead, today, TimeZoneInfo.Local);
         ct.ThrowIfCancellationRequested();
-        RecordHistory(results, fleet, loot, arRead, joined, inventory, salvageNames, (fleetCache.Key, lootCache.Key, arCache.Key, inventoryCache.Key, today.DayNumber, arExcludedKey), ct);
+        RecordHistory(results, fleet, loot, arRead, joined, inventory, salvageNames, (fleetCache.Key, lootCache.Key, arCache.Key, inventoryCache.Key, today.DayNumber), ct);
         Publish(i => i with
         {
             Results = results,
@@ -297,7 +296,7 @@ internal sealed class PluginStatusService : IDisposable
     // Today's row after each refresh that read a fresh, non-empty fleet and loot; the last write of the day wins.
     // Failures are kept for the History tab and never reach the game.
     private void RecordHistory(IReadOnlyList<PluginCheckResult> results, FleetRead? fleet, LootRead? loot, AutoRetainerRead? arRead, TrackingRead? joined, InventoryRead? inventory,
-        IReadOnlyList<SalvageItem> salvageNames, (SourceKey?, SourceKey?, SourceKey?, SourceKey?, int, string) inputs, CancellationToken ct)
+        IReadOnlyList<SalvageItem> salvageNames, (SourceKey?, SourceKey?, SourceKey?, SourceKey?, int) inputs, CancellationToken ct)
     {
         try
         {
@@ -313,15 +312,13 @@ internal sealed class PluginStatusService : IDisposable
                     var ar = HistoryRecorder.FreshOnly(results, PluginRequirements.AutoRetainer, arRead);
                     var inv = HistoryRecorder.FreshOnly(results, PluginRequirements.AllaganTools, inventory);
                     var tracking = ar?.Characters is null ? null : joined;
-                    // characters AutoRetainer excludes from deployables record no hulls, loot or supplies; their gil stays
-                    var arExcluded = CharacterFilter.WithAutoRetainer(new HashSet<string>(), arRead?.Characters);
                     SalvageBacklog? backlog = null;
                     // an inventory file whose owner column no longer looks right feeds nothing into the row
                     if (inv?.Rows is { } invRows && ar?.Characters is { } chars && InventoryToolsCsv.OwnersLookRight(invRows, chars.Select(c => c.Cid)))
                         backlog = BacklogMath.Compute(invRows, salvageNames, chars, new HashSet<string>());
                     var row = HistoryRecorder.Build(
                         DateOnly.FromDateTime(DateTime.Now), DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-                        CharacterFilter.Apply(fleet!.Fleets!, arExcluded), CharacterFilter.Apply(loot!.Rows!, arExcluded),
+                        fleet!.Fleets!, loot!.Rows!,
                         SalvageTable.DefaultPrices, ar?.Characters, tracking, backlog, TimeZoneInfo.Local,
                         (loot.LifetimeVoyages, loot.LifetimeSectors));
                     ct.ThrowIfCancellationRequested();

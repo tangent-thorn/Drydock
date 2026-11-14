@@ -3,6 +3,11 @@
 What changed in each release. The section for a version is what shows in
 the plugin installer when you update.
 
+## 1.0.13
+
+- History bug fixed with AutoRetainer exclusion
+- Excluded sub mats bug fixed with AutoRetainer exclusion
+
 ## 1.0.12
 
 - AutoRetainer no longer has to write to a file for it to load in Drydock,
