@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 
 namespace Drydock.Core.Sources;
@@ -33,7 +34,22 @@ public sealed record AutoRetainerCharacter(
 
 public sealed record AutoRetainerSubmarine(string Name, int Level, long CurrentExp, long NextLevelExp);
 
-public sealed record AutoRetainerRead(IReadOnlyList<AutoRetainerCharacter>? Characters, string? Error);
+/// <summary>
+/// One free company as AutoRetainer last saw it. Company credits belong to the FC, not to a character, so several
+/// characters in one FC share this one record.
+/// </summary>
+/// <param name="Id">The FC id: the key AutoRetainer files it under, the same number as a character's FCID.</param>
+/// <param name="Name">Empty when the field is missing.</param>
+/// <param name="Points">Company credits; null when the field is missing or AutoRetainer never read them (no read time).</param>
+/// <param name="PointsUpdatedUtc">When AutoRetainer last read the credits; null when it never did.</param>
+/// <param name="Rank">The FC's rank; null when the field is missing or 0 (not read).</param>
+public sealed record AutoRetainerCompany(ulong Id, string Name, long? Points, DateTime? PointsUpdatedUtc, int? Rank);
+
+public sealed record AutoRetainerRead(IReadOnlyList<AutoRetainerCharacter>? Characters, string? Error)
+{
+    /// <summary>AutoRetainer's FCData keyed by FC id; null when the file has no such object. An entry it cannot read is left out.</summary>
+    public IReadOnlyDictionary<ulong, AutoRetainerCompany>? Companies { get; init; }
+}
 
 // AutoRetainer rewrites this file while we read it, so failures come back as Error, never thrown.
 public static class AutoRetainerConfig
@@ -109,7 +125,7 @@ public static class AutoRetainerConfig
                     ExcludeWorkshop = c.TryGetProperty("ExcludeWorkshop", out var ew) && ew.ValueKind == JsonValueKind.True,
                 });
             }
-            return new(list, null);
+            return new(list, null) { Companies = CompaniesOf(doc.RootElement) };
         }
         catch (Exception ex)
         {
@@ -142,6 +158,27 @@ public static class AutoRetainerConfig
         }
         return sum;
     }
+
+    // the entry's own ID field often differs from its key, so the key is the id
+    private static Dictionary<ulong, AutoRetainerCompany>? CompaniesOf(JsonElement root)
+    {
+        if (!root.TryGetProperty("FCData", out var v) || v.ValueKind != JsonValueKind.Object) return null;
+        var d = new Dictionary<ulong, AutoRetainerCompany>();
+        foreach (var p in v.EnumerateObject())
+        {
+            if (!ulong.TryParse(p.Name, NumberStyles.None, CultureInfo.InvariantCulture, out var id) || id == 0) continue;
+            var e = p.Value;
+            if (e.ValueKind != JsonValueKind.Object) continue;
+            var updated = Money(e, "FCPointsLastUpdate") is { } ms && ms > 0 && ms <= MaxUnixMs
+                ? DateTimeOffset.FromUnixTimeMilliseconds(ms).UtcDateTime
+                : (DateTime?)null;
+            var rank = Money(e, "Rank") is { } r && r > 0 ? (int)Math.Min(r, int.MaxValue) : (int?)null;
+            d[id] = new AutoRetainerCompany(id, Str(e, "Name"), updated is null ? null : Money(e, "FCPoints"), updated, rank);
+        }
+        return d;
+    }
+
+    private static readonly long MaxUnixMs = DateTimeOffset.MaxValue.ToUnixTimeMilliseconds();
 
     private static Dictionary<long, int>? Sent(JsonElement o)
     {

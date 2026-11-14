@@ -234,6 +234,39 @@ public static class TabGates
     }
 
     /// <summary>
+    /// The FC Points tab: AutoRetainer alone (it carries the FCs and their credits), with a ticked character in an FC.
+    /// Submarine Tracker only adds the days, which <see cref="FcDaysReason"/> explains when they are missing.
+    /// </summary>
+    public static TabGate FcPoints(SourceReads s, IReadOnlySet<string> unticked)
+    {
+        if (s.Results.Count == 0) return TabGate.Reading;
+        var ar = Result(s.Results, PluginRequirements.AutoRetainer);
+        if (NeedsLine(ar) is { } needs) return new(GateKind.Needs, [needs]);
+        if (s.AutoRetainer is null) return TabGate.Reading;
+        if (s.AutoRetainer.Characters is not { } characters) return new(GateKind.Error, [AutoRetainerError(s.AutoRetainer.Error)]);
+        if (characters.Count == 0) return new(GateKind.Empty, [NoCharacters]);
+        var inFc = characters.Where(c => c.Fcid != 0).ToList();
+        if (inFc.Count == 0) return new(GateKind.Empty, [NoCompany]);
+        if (inFc.All(c => unticked.Contains(CharacterFilter.Key(c.Name, c.World)))) return new(GateKind.Empty, [NoTickedCompany]);
+        return TabGate.Open;
+    }
+
+    /// <summary>
+    /// Why the FC Points tab has no days columns: the tanks used per day come from the economics, which count only behind
+    /// an open Production gate (an empty loot table would read as no use at all). Null when it has them.
+    /// </summary>
+    public static string? FcDaysReason(TabGate production, SalvageEconomics? economics)
+    {
+        if (production.IsOpen && economics is not null) return null;
+        if (production.IsOpen || production.Kind == GateKind.Reading) return "Reading...";
+        return production.Lines.Count > 0 ? FcDaysNeedLoot + " " + production.Lines[0] : FcDaysNeedLoot;
+    }
+
+    public const string NoCompany = "None of the characters in AutoRetainer is in a free company, so there are no company credits to show.";
+    public const string NoTickedCompany = "Every character in a free company is unticked. Tick one on the Tracking tab.";
+    public const string FcDaysNeedLoot = "The days columns need the tanks used per day, which come from Submarine Tracker's fleet and loot.";
+
+    /// <summary>
     /// Why the unsold-salvage backlog is unavailable, or null when it can be computed. Allagan Tools is optional,
     /// so this is a note beside the numbers it feeds and never closes a tab.
     /// </summary>

@@ -18,7 +18,8 @@ public sealed record ViewSettings(
     double FuelPerSector,
     double KitsPerSector,
     bool UseMeasuredRates,
-    long MilestoneStep = ProjectionMath.DefaultMilestoneStep)
+    long MilestoneStep = ProjectionMath.DefaultMilestoneStep,
+    int FcPointsStaleDays = FcPointsMath.DefaultStaleDays)
 {
     public WarningThresholds Thresholds => new(SilentDays, LowCeruleum, LowRepairKits, RunwayDays);
 }
@@ -41,6 +42,9 @@ public sealed record SourceInputs(
     Calibration? Calibration)
 {
     public static SourceInputs Empty { get; } = new([], null, null, null, null, null, null, null, Routes.DefaultSectors, null, null, null, null, null);
+
+    /// <summary>The Ceruleum Tank's company credit price from the game's Company Credit Exchange list; null when it was not read.</summary>
+    public int? TankCreditPriceFromGame { get; init; }
 }
 
 /// <summary>What each tab's gate says, decided once per snapshot.</summary>
@@ -52,7 +56,8 @@ public sealed record SnapshotGates(
     TabGate Production,
     TabGate Projection,
     TabGate Gil,
-    TabGate Levelling);
+    TabGate Levelling,
+    TabGate FcPoints);
 
 public sealed record LevellingView(
     LevellingPlan Plan,
@@ -137,6 +142,8 @@ public sealed record StatusSnapshot(long Version, DateOnly Today, SourceInputs I
     public LevellingView? Levelling { get; init; }
     public ProjectionView? Projection { get; init; }
     public HistoryView? History { get; init; }
+    /// <summary>The FC Points tab; null behind a closed FcPoints gate.</summary>
+    public FcPointsView? FcPoints { get; init; }
     /// <summary>Null behind a closed Ticked gate, where the Overview draws the gate instead.</summary>
     public OverviewView? Overview { get; init; }
 
@@ -185,7 +192,8 @@ public static class SnapshotBuilder
             TabGates.Production(reads, excluded),
             TabGates.Projection(reads, excluded, economics),
             TabGates.Gil(reads, s.Excluded),
-            TabGates.Levelling(reads, excluded, inputs.GameData is not null, inputs.GameDataError));
+            TabGates.Levelling(reads, excluded, inputs.GameData is not null, inputs.GameDataError),
+            TabGates.FcPoints(reads, s.Excluded));
 
         var tileEconomics = gates.Loot.IsOpen ? economics : null;
         var backlogReason = TabGates.BacklogReason(results, inputs.Inventory, inputs.AutoRetainer);
@@ -258,6 +266,7 @@ public static class SnapshotBuilder
             Levelling = plan is null ? null : LevellingOf(plan, results, subs),
             Projection = projection,
             History = HistoryOf(inputs, today, g),
+            FcPoints = gates.FcPoints.IsOpen ? FcPointsOf(inputs, s, excluded, economics, rates, gates.Production, nowUtc) : null,
             Overview = gates.Ticked.IsOpen
                 ? OverviewCards.Build(subs, farmingCount, tracking, subsView, tileEconomics, tileReason, gates.Gil, holdings, backlogReason, projection?.Result, suppliesNote, warnings, today)
                 : null,
@@ -348,6 +357,24 @@ public static class SnapshotBuilder
         var overlay = $"{DateLabels.Range(result.Curve[0].Date, result.Curve[^1].Date, today)}, {g(shown.Min())} to {g(shown.Max())}";
         return new(holdings, noGil, plan is not null, result, values, result.Curve.Select(c => c.Date.DayNumber).ToArray(), overlay, best, bestValues);
     }
+
+    // the ticks alone keep an FC on the tab; the AutoRetainer exclusion only takes its hulls out of the use
+    private static FcPointsView FcPointsOf(
+        SourceInputs inputs, ViewSettings s, IReadOnlySet<string> subsExcluded, SalvageEconomics? economics, RateChoice rates, TabGate production, DateTime nowUtc) =>
+        FcPointsMath.Compute(
+            inputs.AutoRetainer!.Characters!,
+            inputs.AutoRetainer.Companies,
+            inputs.Fleet?.Fleets,
+            s.Excluded,
+            subsExcluded,
+            production.IsOpen ? economics?.Model : null,
+            rates.FuelPerSector,
+            TankPrice.Choose(inputs.TankCreditPriceFromGame),
+            nowUtc,
+            s.FcPointsStaleDays,
+            FcPointsMath.RankNeeded,
+            inputs.Loot?.HasSectors == false ? EndgameRule.ByRank85 : EndgameRule.ByRoute,
+            TabGates.FcDaysReason(production, economics));
 
     private static HistoryView? HistoryOf(SourceInputs inputs, DateOnly today, Func<double, string> g)
     {
