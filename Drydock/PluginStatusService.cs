@@ -233,7 +233,7 @@ internal sealed class PluginStatusService : IDisposable
             (gameData, gameDataError) = LoadGameData();
             if (gameData is not null) sectors = gameData.SectorLabels();
         }
-        var tankPrice = held.TankCreditPriceFromGame ?? LoadTankPrice();
+        var (tankPrice, tankRank) = held.TankCreditPriceFromGame is { } heldPrice ? (heldPrice, held.TankRankFromGame) : LoadTankPrice();
         var joined = SnapshotBuilder.Join(fleet, arRead, today, TimeZoneInfo.Local);
         ct.ThrowIfCancellationRequested();
         RecordHistory(results, fleet, loot, arRead, joined, inventory, salvageNames, (fleetCache.Key, lootCache.Key, arCache.Key, inventoryCache.Key, today.DayNumber), ct);
@@ -251,6 +251,7 @@ internal sealed class PluginStatusService : IDisposable
             GameData = gameData,
             GameDataError = gameDataError,
             TankCreditPriceFromGame = tankPrice,
+            TankRankFromGame = tankRank,
         });
     }
 
@@ -402,9 +403,10 @@ internal sealed class PluginStatusService : IDisposable
         }
     }
 
-    // The Ceruleum Tank's credit price at the Company Credit Exchange, the lowest if it is listed more than once. Null when
-    // it cannot be read, so Core falls back to the usual price; retried on the next refresh while it is null.
-    private static int? LoadTankPrice()
+    // The Ceruleum Tank's credit price at the Company Credit Exchange, the lowest if it is listed more than once, and the
+    // FC rank that entry asks for (its FCRank row, whose row id is the rank). Nulls when it cannot be read, so Core falls
+    // back to the usual price and rank; retried on the next refresh while the price is null.
+    private static (int? Price, int? Rank) LoadTankPrice()
     {
         try
         {
@@ -412,28 +414,29 @@ internal sealed class PluginStatusService : IDisposable
             if (sheet is null)
             {
                 if (readerErrors.First("FccShop missing")) Plugin.Log.Warning("Drydock could not read the tank price: the FccShop sheet is not available");
-                return null;
+                return (null, null);
             }
             uint? lowest = null;
+            uint rank = 0;
             foreach (var shop in sheet)
             {
                 foreach (var entry in shop.ItemData)
                 {
                     if (entry.Item.RowId != FcPointsMath.TankItemId || entry.Cost == 0) continue;
-                    if (lowest is null || entry.Cost < lowest) lowest = entry.Cost;
+                    if (lowest is null || entry.Cost < lowest) (lowest, rank) = (entry.Cost, entry.FCRankRequired.RowId);
                 }
             }
             if (lowest is null)
             {
                 if (readerErrors.First("FccShop no tank")) Plugin.Log.Warning("Drydock could not read the tank price: the FccShop sheet does not list the Ceruleum Tank");
-                return null;
+                return (null, null);
             }
-            return (int)Math.Min(lowest.Value, int.MaxValue);
+            return ((int)Math.Min(lowest.Value, int.MaxValue), rank is > 0 and <= FcPointsMath.MaxFcRank ? (int)rank : null);
         }
         catch (Exception ex)
         {
             if (readerErrors.First("FccShop " + ex.Message)) Plugin.Log.Warning(ex, "Drydock could not read the tank price");
-            return null;
+            return (null, null);
         }
     }
 

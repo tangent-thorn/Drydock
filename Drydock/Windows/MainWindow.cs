@@ -848,7 +848,7 @@ public sealed class MainWindow : Window
                     ImGui.SetClipboardText(TableText.Build(["FC", "Characters", "Rank", "Credits", "Credits age (days)", "Tanks buyable", "Tanks/day",
                         "Days from credits", "On hand", "Days with stock"], rows,
                         r => [r.Name, FcPointsText.Members(r), r.Rank, r.Points, r.PointsAgeDays, r.TanksBuyable, r.TanksPerDay,
-                            r.DaysFromPoints, r.TanksOnHand, r.DaysWithStock]));
+                            FcPointsText.WholeDays(r.DaysFromPoints), r.TanksOnHand, FcPointsText.WholeDays(r.DaysWithStock)]));
                 foreach (var r in rows)
                 {
                     ImGui.TableNextRow();
@@ -857,8 +857,13 @@ public sealed class MainWindow : Window
                     ImGui.TableNextColumn();
                     ImGui.TextUnformatted(FcPointsText.Members(r));
                     ImGui.TableNextColumn();
-                    if (r.Rank is { } rank && rank < view.RankNeeded) ImGui.TextColored(StatusColors.Amber, rank.ToString(CultureInfo.InvariantCulture));
-                    else ImGui.TextUnformatted(r.Rank?.ToString(CultureInfo.InvariantCulture) ?? "-");
+                    var rankCell = FcPointsText.Rank(r, view.RankNeeded);
+                    if (r.RankBlocked)
+                    {
+                        ImGui.TextColored(StatusColors.Amber, rankCell.Text);
+                        if (rankCell.Tooltip is { } rankTip && ImGui.IsItemHovered()) ImGui.SetTooltip(rankTip);
+                    }
+                    else FcCellText(rankCell);
                     ImGui.TableNextColumn();
                     ImGui.TextUnformatted(r.Points is { } p ? p.ToString("N0", CultureInfo.InvariantCulture) : "-");
                     ImGui.TableNextColumn();

@@ -35,8 +35,14 @@ public static class FcPointsText
         { } d => string.Create(CultureInfo.InvariantCulture, $"{Math.Floor(d):0}d ago"),
     };
 
-    /// <summary>Whole days, rounded down: the credits last at least that long.</summary>
-    public static string Days(double days) => Math.Floor(days).ToString("N0", CultureInfo.InvariantCulture);
+    /// <summary>Whole days, rounded down: the credits last at least that long. The cell and the copy both use this.</summary>
+    public static long? WholeDays(double? days) => days is { } d ? (long)Math.Floor(d) : null;
+
+    public static string Days(double days) => WholeDays(days)!.Value.ToString("N0", CultureInfo.InvariantCulture);
+
+    /// <summary>The rank, or "?" with the reason when AutoRetainer has not read it.</summary>
+    public static FcCell Rank(FcPointsRow row, int rankNeeded) =>
+        row.Rank is { } r ? new(r.ToString(CultureInfo.InvariantCulture), row.RankBlocked ? row.BuyNote : null) : new("?", FcPointsMath.RankNotRead(rankNeeded));
 
     /// <summary>A reason short enough for a cell; the full one goes in the tooltip.</summary>
     public static string Short(string note) => note switch
@@ -56,7 +62,7 @@ public static class FcPointsText
         row.TanksBuyable is { } b ? new(N0(b), row.BuyNote) : Note(row.BuyNote);
 
     public static FcCell DaysFromPoints(FcPointsRow row) =>
-        row.DaysFromPoints is { } d ? new(Days(d)) : Note(row.DaysNote);
+        row.DaysFromPoints is { } d ? new(Days(d), row.RankBlocked ? row.BuyNote : null) : Note(row.DaysNote);
 
     public static FcCell DaysWithStock(FcPointsRow row) =>
         row.DaysWithStock is { } d ? new(Days(d))

@@ -235,7 +235,8 @@ public static class TabGates
 
     /// <summary>
     /// The FC Points tab: AutoRetainer alone (it carries the FCs and their credits), with a ticked character in an FC.
-    /// Submarine Tracker only adds the days, which <see cref="FcDaysReason"/> explains when they are missing.
+    /// Submarine Tracker only places FCID 0 characters through their fleet and adds the days, which
+    /// <see cref="FcDaysReason"/> explains when they are missing.
     /// </summary>
     public static TabGate FcPoints(SourceReads s, IReadOnlySet<string> unticked)
     {
@@ -245,7 +246,8 @@ public static class TabGates
         if (s.AutoRetainer is null) return TabGate.Reading;
         if (s.AutoRetainer.Characters is not { } characters) return new(GateKind.Error, [AutoRetainerError(s.AutoRetainer.Error)]);
         if (characters.Count == 0) return new(GateKind.Empty, [NoCharacters]);
-        var inFc = characters.Where(c => c.Fcid != 0).ToList();
+        // the same placing as the tab's rows, FCID 0 characters through their fleet included
+        var inFc = FcPointsMath.CompaniesOf(characters, s.Fleet?.Fleets).Where(x => x.FcId != 0).Select(x => x.Character).ToList();
         if (inFc.Count == 0) return new(GateKind.Empty, [NoCompany]);
         if (inFc.All(c => unticked.Contains(CharacterFilter.Key(c.Name, c.World)))) return new(GateKind.Empty, [NoTickedCompany]);
         return TabGate.Open;

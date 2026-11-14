@@ -45,6 +45,9 @@ public sealed record SourceInputs(
 
     /// <summary>The Ceruleum Tank's company credit price from the game's Company Credit Exchange list; null when it was not read.</summary>
     public int? TankCreditPriceFromGame { get; init; }
+
+    /// <summary>The FC rank that list asks for the tank; null when it was not read.</summary>
+    public int? TankRankFromGame { get; init; }
 }
 
 /// <summary>What each tab's gate says, decided once per snapshot.</summary>
@@ -372,7 +375,7 @@ public static class SnapshotBuilder
             TankPrice.Choose(inputs.TankCreditPriceFromGame),
             nowUtc,
             s.FcPointsStaleDays,
-            FcPointsMath.RankNeeded,
+            FcPointsMath.RankNeededFrom(inputs.TankRankFromGame),
             inputs.Loot?.HasSectors == false ? EndgameRule.ByRank85 : EndgameRule.ByRoute,
             TabGates.FcDaysReason(production, economics));
 

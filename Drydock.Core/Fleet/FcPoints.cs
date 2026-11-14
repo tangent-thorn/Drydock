@@ -28,12 +28,13 @@ public sealed record FcMember(string Name, string World, bool Unticked, bool Exc
 /// <param name="PointsAgeDays">Days since AutoRetainer read the credits; null when it never did.</param>
 /// <param name="Stale">The credits were read longer ago than the stale setting.</param>
 /// <param name="TanksBuyable">floor(credits / price); 0 below the rank needed; null without credits or a price.</param>
-/// <param name="BuyNote">Why <see cref="TanksBuyable"/> is null or forced to 0; null otherwise.</param>
+/// <param name="BuyNote">Why <see cref="TanksBuyable"/> is null or forced to 0, or that the rank behind it was not read; null otherwise.</param>
 /// <param name="FarmingHulls">Hulls of the FC on a gil route now, of characters not excluded from submarine figures.</param>
 /// <param name="LevellingHulls">The FC's other hulls with a route, likewise.</param>
 /// <param name="TanksPerDay">Ceruleum tanks the FC's hulls burn per day; null without the economics.</param>
 /// <param name="DaysFromPoints">Days of tanks the credits buy at today's use; null when the use is 0 or unknown.</param>
-/// <param name="TanksOnHand">The ticked members' ceruleum; null when any of them lacks the field.</param>
+/// <param name="TanksOnHand">The ceruleum of the ticked members that own a hull (all ticked ones while the hulls are
+/// unknown), as the fleet's stock counts it; null when none counts or any of them lacks the field.</param>
 /// <param name="DaysWithStock">(buyable + on hand) / use; null when any part is unknown or the use is 0.</param>
 /// <param name="DaysNote">Why the days are null; null when <see cref="DaysFromPoints"/> has a value.</param>
 public sealed record FcPointsRow(
@@ -56,6 +57,9 @@ public sealed record FcPointsRow(
     string? DaysNote)
 {
     public bool RunsSubs => FarmingHulls + LevellingHulls > 0;
+
+    /// <summary>The FC's rank is known and below the one tanks need: <see cref="TanksBuyable"/> is a forced 0.</summary>
+    public bool RankBlocked { get; init; }
 }
 
 /// <summary>Sums over distinct FCs. There is no pooled days figure: credits cannot move between FCs.</summary>
@@ -63,7 +67,7 @@ public sealed record FcPointsRow(
 /// <param name="PointsUnknown">FCs whose credits were never read, left out of <see cref="Points"/>.</param>
 /// <param name="TanksBuyable">Over the FCs that have a figure.</param>
 /// <param name="TanksPerDay">Null without the economics.</param>
-/// <param name="TanksOnHand">Null when any FC's stock is unknown.</param>
+/// <param name="TanksOnHand">Over the FCs with a member that counts for stock; null when one of them is unknown.</param>
 /// <param name="ShortestDays">The fewest days the credits last across the FCs that run subs; null when none has a figure.</param>
 /// <param name="ShortestName">That FC's name.</param>
 public sealed record FcPointsTotals(
@@ -109,8 +113,14 @@ public static class FcPointsMath
     public const string PointsNotRead = "credits not read yet: open the FC window on a member with AutoRetainer loaded";
     public const string NoPrice = "no tank price";
 
+    /// <summary>The highest FC rank, the last row of the game's FCRank sheet.</summary>
+    public const int MaxFcRank = 30;
+
     public static string RankTooLow(int rank, int needed) =>
         string.Create(CultureInfo.InvariantCulture, $"needs FC rank {needed} to buy tanks (rank {rank})");
+
+    public static string RankNotRead(int needed) =>
+        string.Create(CultureInfo.InvariantCulture, $"FC rank not read yet; tanks need rank {needed}");
 
     /// <summary>
     /// The FC view from AutoRetainer's characters and FC data and Submarine Tracker's current fleets (old FCs already
@@ -133,19 +143,12 @@ public static class FcPointsMath
         EndgameRule rule = EndgameRule.ByRoute,
         string? daysUnavailable = null)
     {
-        // AutoRetainer can hold FCID 0 for a character whose FC it has not read; Submarine Tracker's fleet then names it
-        var fleetFc = FleetFcByName(fleets);
         var fromFleet = new HashSet<AutoRetainerCharacter>(ReferenceEqualityComparer.Instance);
         var membersById = new Dictionary<ulong, List<AutoRetainerCharacter>>();
         var fcByName = new Dictionary<string, ulong>(StringComparer.Ordinal);
-        foreach (var c in characters)
+        foreach (var (c, fcid, byFleet) in CompaniesOf(characters, fleets))
         {
-            var fcid = c.Fcid;
-            if (fcid == 0 && fleetFc.TryGetValue(c.Name, out var f) && f != 0)
-            {
-                fcid = f;
-                fromFleet.Add(c);
-            }
+            if (byFleet) fromFleet.Add(c);
             fcByName.TryAdd(c.Name, fcid);
             if (fcid == 0) continue;
             if (!membersById.TryGetValue(fcid, out var list)) membersById[fcid] = list = [];
@@ -169,6 +172,9 @@ public static class FcPointsMath
             list.Add(f);
         }
 
+        // owners by name over every fleet given, as FleetTracking.JoinAll counts them; null when the fleet was not read
+        var hullOwners = fleets?.Where(f => f.Submarines.Count > 0).Select(f => f.CharacterName).ToHashSet(StringComparer.Ordinal);
+        var stockedRows = new HashSet<ulong>();
         var rows = new List<FcPointsRow>();
         foreach (var id in shown)
         {
@@ -181,13 +187,21 @@ public static class FcPointsMath
 
             long? buyable;
             string? buyNote = null;
+            var rankBlocked = false;
             if (price.Credits <= 0) { buyable = null; buyNote = NoPrice; }
-            else if (fc?.Rank is { } rank && rank < rankNeeded) { buyable = 0; buyNote = RankTooLow(rank, rankNeeded); }
-            else if (fc?.Points is { } pts) buyable = Math.Max(pts, 0) / price.Credits;
+            else if (fc?.Rank is { } rank && rank < rankNeeded) { buyable = 0; buyNote = RankTooLow(rank, rankNeeded); rankBlocked = true; }
+            else if (fc?.Points is { } pts)
+            {
+                buyable = Math.Max(pts, 0) / price.Credits;
+                // the figure stands, but the game may still refuse: say so
+                if (fc.Rank is null) buyNote = RankNotRead(rankNeeded);
+            }
             else { buyable = null; buyNote = PointsNotRead; }
 
-            var stocked = members.Where(c => !IsUnticked(c)).ToList();
-            int? onHand = stocked.All(c => c.Ceruleum.HasValue) ? stocked.Sum(c => c.Ceruleum!.Value) : null;
+            // the fleet's stock rule: ticked members that own a hull, or every ticked one while the hulls are unknown
+            var stocked = members.Where(c => !IsUnticked(c) && (hullOwners is null || hullOwners.Contains(c.Name))).ToList();
+            int? onHand = stocked.Count > 0 && stocked.All(c => c.Ceruleum.HasValue) ? stocked.Sum(c => c.Ceruleum!.Value) : null;
+            if (stocked.Count > 0) stockedRows.Add(id);
 
             double? days = null, withStock = null;
             string? daysNote;
@@ -219,7 +233,7 @@ public static class FcPointsMath
                 days,
                 onHand,
                 withStock,
-                daysNote));
+                daysNote) { RankBlocked = rankBlocked });
         }
         rows.Sort((x, y) =>
         {
@@ -228,18 +242,39 @@ public static class FcPointsMath
             return c != 0 ? c : x.Id.CompareTo(y.Id);
         });
 
-        var shortest = rows.Where(r => r.RunsSubs && r.DaysFromPoints.HasValue).OrderBy(r => r.DaysFromPoints).FirstOrDefault();
+        // an FC below the rank cannot buy at all: its 0 days is not a shortfall the credits could fix
+        var shortest = rows.Where(r => r.RunsSubs && r.DaysFromPoints.HasValue && !r.RankBlocked).OrderBy(r => r.DaysFromPoints).FirstOrDefault();
+        var stockRows = rows.Where(r => stockedRows.Contains(r.Id)).ToList();
         var totals = new FcPointsTotals(
             rows.Sum(r => r.Points ?? 0),
             rows.Count(r => r.Points is null),
             rows.Sum(r => r.TanksBuyable ?? 0),
             rates is null ? null : rows.Sum(r => r.TanksPerDay ?? 0),
-            rows.All(r => r.TanksOnHand.HasValue) ? rows.Sum(r => r.TanksOnHand!.Value) : null,
+            stockRows.Count > 0 && stockRows.All(r => r.TanksOnHand.HasValue) ? stockRows.Sum(r => r.TanksOnHand!.Value) : null,
             shortest?.DaysFromPoints,
             shortest?.Id,
             shortest?.Name);
         return new FcPointsView(rows, totals, old, companies is not null, price, rankNeeded, staleDays, rates is null ? daysUnavailable ?? "no tank use figure yet" : null, unmatched);
     }
+
+    /// <summary>
+    /// The FC each character is in: AutoRetainer's FCID, or for FCID 0 the one non-zero FC id its Submarine Tracker
+    /// fleets carry (FromFleet); 0 when neither names one.
+    /// </summary>
+    public static IEnumerable<(AutoRetainerCharacter Character, ulong FcId, bool FromFleet)> CompaniesOf(
+        IReadOnlyList<AutoRetainerCharacter> characters, IReadOnlyList<FreeCompanyFleet>? fleets)
+    {
+        // AutoRetainer can hold FCID 0 for a character whose FC it has not read; Submarine Tracker's fleet then names it
+        var fleetFc = FleetFcByName(fleets);
+        foreach (var c in characters)
+        {
+            if (c.Fcid == 0 && fleetFc.TryGetValue(c.Name, out var f) && f != 0) yield return (c, f, true);
+            else yield return (c, c.Fcid, false);
+        }
+    }
+
+    /// <summary>The game's rank for tanks when it was read and is a real FC rank; the usual 6 otherwise.</summary>
+    public static int RankNeededFrom(int? fromGame) => fromGame is >= 1 and <= MaxFcRank ? fromGame.Value : RankNeeded;
 
     // the one non-zero FC id each character's fleets carry; a name with two different ones is left out, as unknown
     private static Dictionary<string, ulong> FleetFcByName(IReadOnlyList<FreeCompanyFleet>? fleets)
