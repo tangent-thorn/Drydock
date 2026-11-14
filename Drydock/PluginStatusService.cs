@@ -64,7 +64,8 @@ internal sealed class PluginStatusService : IDisposable
     private readonly ReadCache<LootRead> lootCache = new();
     private readonly ReadCache<InventoryRead> inventoryCache = new();
     private readonly ReadCache<KitPriceRead> kitPriceCache = new();
-    private (SourceKey?, SourceKey?, SourceKey?, SourceKey?, int)? historyInputs;
+    private readonly AutoRetainerIpc arIpc;
+    private (SourceKey?, SourceKey?, SourceKey?, SourceKey?, int, string)? historyInputs;
     private bool historyDirty = true;
     private readonly CancellationTokenSource cts = new();
     private static readonly TimeSpan StopTimeout = TimeSpan.FromSeconds(2);
@@ -105,6 +106,7 @@ internal sealed class PluginStatusService : IDisposable
         probe = new PluginConfigsProbe(Path.GetDirectoryName(pi.GetPluginConfigDirectory().TrimEnd('/', '\\'))!);
         history = new HistoryStore(Path.Combine(pi.GetPluginConfigDirectory(), "history.db"));
         checker = new PluginChecker(new DalamudPluginHost(pi), probe, () => DateTime.UtcNow);
+        arIpc = new AutoRetainerIpc(pi, Plugin.Framework);
         publisher = new SnapshotPublisher(CaptureSettings(), () => DateTime.UtcNow, TimeZoneInfo.Local);
         pi.ActivePluginsChanged += OnActivePluginsChanged;
     }
@@ -207,8 +209,12 @@ internal sealed class PluginStatusService : IDisposable
         // each reader fails on its own: one that throws takes down its own figures and nothing else
         var fleet = Cached(fleetCache, st, staleDays,
             () => Guard(() => SubmarineTrackerDb.Read(PathFor(st.Requirement)), e => new FleetRead(null, e)));
-        var arRead = Cached(arCache, ar, staleDays,
+        var arFile = Cached(arCache, ar, staleDays,
             () => Guard(() => AutoRetainerConfig.Read(PathFor(ar.Requirement)), e => new AutoRetainerRead(null, e)));
+        ct.ThrowIfCancellationRequested();
+        // asked on every refresh, cached file or not: the flag AutoRetainer holds now wins over the one it last wrote
+        var arRead = arFile?.Characters is null ? arFile : AutoRetainerConfig.WithLiveExclusions(arFile, arIpc.ReadExclusions(ct));
+        var arExcludedKey = string.Join(",", arRead?.Characters?.Where(c => c.ExcludeWorkshop).Select(c => c.Cid) ?? []);
         ct.ThrowIfCancellationRequested();
         var loot = Cached(lootCache, st, staleDays,
             () => Guard(() => SubmarineTrackerDb.ReadLoot(PathFor(st.Requirement), DateTime.UtcNow), e => new LootRead(null, e)));
@@ -229,7 +235,7 @@ internal sealed class PluginStatusService : IDisposable
         }
         var joined = SnapshotBuilder.Join(fleet, arRead, today, TimeZoneInfo.Local);
         ct.ThrowIfCancellationRequested();
-        RecordHistory(results, fleet, loot, arRead, joined, inventory, salvageNames, (fleetCache.Key, lootCache.Key, arCache.Key, inventoryCache.Key, today.DayNumber), ct);
+        RecordHistory(results, fleet, loot, arRead, joined, inventory, salvageNames, (fleetCache.Key, lootCache.Key, arCache.Key, inventoryCache.Key, today.DayNumber, arExcludedKey), ct);
         Publish(i => i with
         {
             Results = results,
@@ -291,7 +297,7 @@ internal sealed class PluginStatusService : IDisposable
     // Today's row after each refresh that read a fresh, non-empty fleet and loot; the last write of the day wins.
     // Failures are kept for the History tab and never reach the game.
     private void RecordHistory(IReadOnlyList<PluginCheckResult> results, FleetRead? fleet, LootRead? loot, AutoRetainerRead? arRead, TrackingRead? joined, InventoryRead? inventory,
-        IReadOnlyList<SalvageItem> salvageNames, (SourceKey?, SourceKey?, SourceKey?, SourceKey?, int) inputs, CancellationToken ct)
+        IReadOnlyList<SalvageItem> salvageNames, (SourceKey?, SourceKey?, SourceKey?, SourceKey?, int, string) inputs, CancellationToken ct)
     {
         try
         {

@@ -173,7 +173,7 @@ public static class CharacterFilter
 
     /// <summary>
     /// The unticked characters plus those AutoRetainer excludes from deployables, for every figure about submarines.
-    /// Read from AutoRetainer's file each time, never saved, so clearing the flag there brings the character back.
+    /// Read from AutoRetainer each time, never saved, so clearing the flag there brings the character back.
     /// </summary>
     public static IReadOnlySet<string> WithAutoRetainer(IReadOnlySet<string> excluded, IReadOnlyList<AutoRetainerCharacter>? ar)
     {

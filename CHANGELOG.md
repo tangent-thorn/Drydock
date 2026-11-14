@@ -3,6 +3,11 @@
 What changed in each release. The section for a version is what shows in
 the plugin installer when you update.
 
+## 1.0.12
+
+- AutoRetainer no longer has to write to a file for it to load in Drydock,
+  new IPC call that grabs if a character is excluded on next refresh.
+
 ## 1.0.11
 
 - A character you've excluded from deployables in AutoRetainer is now left

@@ -49,6 +49,20 @@ public static class AutoRetainerConfig
         return TryRead(path);
     }
 
+    /// <summary>
+    /// The read with each character's ExcludeWorkshop taken from AutoRetainer's live answer where it has that CID; the
+    /// file keeps the say for the others. The same read comes back when nothing differs, or when there is no live answer.
+    /// </summary>
+    public static AutoRetainerRead? WithLiveExclusions(AutoRetainerRead? read, IReadOnlyDictionary<ulong, bool>? live)
+    {
+        if (read?.Characters is not { } chars || live is null || live.Count == 0) return read;
+        if (!chars.Any(c => live.TryGetValue(c.Cid, out var v) && v != c.ExcludeWorkshop)) return read;
+        return read with
+        {
+            Characters = chars.Select(c => live.TryGetValue(c.Cid, out var v) ? c with { ExcludeWorkshop = v } : c).ToList(),
+        };
+    }
+
     // a half-written file is bad JSON or a sharing violation; a missing file or a wrong shape is not worth a second try
     private static bool Retryable(string error) =>
         error.StartsWith(nameof(JsonException), StringComparison.Ordinal) || error.StartsWith(nameof(IOException), StringComparison.Ordinal);
