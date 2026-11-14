@@ -3,7 +3,7 @@
     "Author": "tangent-thorn",
     "Name": "Drydock",
     "InternalName": "Drydock",
-    "AssemblyVersion": "1.0.11.0",
+    "AssemblyVersion": "1.0.12.0",
     "TestingAssemblyVersion": null,
     "Description": "Keeps track of every sub across all your characters in one window, what's back, what's still levelling, how much salvage and gil you're making, and what you're running low on. Everything stays on your PC.\n\nNeeds AutoRetainer (custom repo: https://love.puni.sh/ment.json) and Submarine Tracker. Allagan Tools and CashFlow are optional, they add the salvage you haven't sold yet and your real repair kit price.",
     "Punchline": "All your subs in one window, what's back, what's still levelling, what you're making and what you're running low on.",
@@ -26,10 +26,10 @@
     "IsHide": false,
     "IsTestingExclusive": false,
     "DownloadCount": 0,
-    "LastUpdate": "1794472052",
-    "DownloadLinkInstall": "https://github.com/tangent-thorn/Drydock/releases/download/v1.0.11/latest.zip",
-    "DownloadLinkTesting": "https://github.com/tangent-thorn/Drydock/releases/download/v1.0.11/latest.zip",
-    "DownloadLinkUpdate": "https://github.com/tangent-thorn/Drydock/releases/download/v1.0.11/latest.zip",
-    "Changelog": "- A character you've excluded from deployables in AutoRetainer is now left\n  out of everything sub related in Drydock, its gil still counts on the Gil\n  tab. It stays listed on Tracking greyed out, and turning the setting back\n  off in AutoRetainer brings it back."
+    "LastUpdate": "1794636067",
+    "DownloadLinkInstall": "https://github.com/tangent-thorn/Drydock/releases/download/v1.0.12/latest.zip",
+    "DownloadLinkTesting": "https://github.com/tangent-thorn/Drydock/releases/download/v1.0.12/latest.zip",
+    "DownloadLinkUpdate": "https://github.com/tangent-thorn/Drydock/releases/download/v1.0.12/latest.zip",
+    "Changelog": "- AutoRetainer no longer has to write to a file for it to load in Drydock,\n  new IPC call that grabs if a character is excluded on next refresh."
   }
 ]
