@@ -3,6 +3,14 @@
 What changed in each release. The section for a version is what shows in
 the plugin installer when you update.
 
+## 1.1.0
+
+- New FC Points tab. One row per FC with its credits, how many ceruleum
+  tanks they'll buy, and how many days that lasts on what that FC's subs
+  burn now.
+- It also shows the tanks you already have on hand and the days with
+  those added in, and the top line tells you which FC runs out first.
+
 ## 1.0.13
 
 - History bug fixed with AutoRetainer exclusion

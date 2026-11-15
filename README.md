@@ -19,6 +19,9 @@ are no network calls and no telemetry.
 
 - **Fleet**: every sub grouped by FC, with rank, route and a countdown.
 
+- **FC Points**: each FC's credits, how many ceruleum tanks they'll buy,
+  and how many days that lasts on what its subs burn now.
+
 - **Levelling**: every sub not on a gil route yet, with EXP per voyage and
   a best to worst range of days until it hits your target rank (85 by
   default), based off its real parts, route and how often you resend it.
@@ -41,8 +44,8 @@ are no network calls and no telemetry.
 - **Tracking**: what Drydock is reading per character. Untick one to leave
   it out of everything.
 
-- The tables on Gil, Salvage, Levelling and Tracking have a Copy button
-  if you'd rather work the numbers in a spreadsheet.
+- The tables on FC Points, Gil, Salvage, Levelling and Tracking have a
+  Copy button if you'd rather work the numbers in a spreadsheet.
 
 - A server info bar entry like "Subs 3 back, next in 1h 12m". Click it to
   open Drydock, or turn it off in settings.
@@ -90,10 +93,10 @@ the installer.
 `/drydock config` (or just hit the cog in the window's title bar).
 
 In settings you can change the warning limits (days quiet, low ceruleum,
-low kits), when data counts as stale, the info bar toggle, how often you
-resend subs (used for the levelling dates), fuel and kit prices and usage
-per sector for upkeep, and the gil target and milestone step for the
-projection.
+low kits), when data and FC credits count as stale, the info bar toggle,
+how often you resend subs (used for the levelling dates), fuel and kit
+prices and usage per sector for upkeep, and the gil target and milestone
+step for the projection.
 
 ## License
 
