@@ -41,10 +41,13 @@ are no network calls and no telemetry.
   hit your target (1B by default), and every milestone along the way. A
   faint second line shows the best case.
 
+- **Restock**: how many tanks and kits each character needs to buy so its
+  subs last 30 days (change it in settings), with what the kits cost.
+
 - **Tracking**: what Drydock is reading per character. Untick one to leave
   it out of everything.
 
-- The tables on FC Points, Gil, Salvage, Levelling and Tracking have a
+- The tables on FC Points, Gil, Salvage, Levelling, Restock and Tracking have a
   Copy button if you'd rather work the numbers in a spreadsheet.
 
 - A server info bar entry like "Subs 3 back, next in 1h 12m". Click it to

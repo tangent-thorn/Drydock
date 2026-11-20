@@ -73,6 +73,8 @@ public sealed class ConfigWindow : Window
                 status.Recompute();
             }
             ImGui.TextDisabled("Salvage prices are the vendor prices.");
+            Int("Restock days", configuration.RestockDays, RestockMath.MinDays, RestockMath.MaxDays, v => configuration.RestockDays = v);
+            ImGui.TextDisabled("The Restock tab buys enough tanks and kits for this many days.");
         }
 
         if (ImGui.CollapsingHeader("Projection", ImGuiTreeNodeFlags.DefaultOpen))

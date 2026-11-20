@@ -182,8 +182,8 @@ public static class FcPointsMath
             AutoRetainerCompany? fc = null;
             companies?.TryGetValue(id, out fc);
 
-            var (farming, levelling) = fleetsById.TryGetValue(id, out var own) ? Hulls(own, rule) : (0, 0);
-            double? perDay = rates is null ? null : (farming * rates.SecPerEnd + levelling * rates.SecPerLvl) * fuelPerSector;
+            var (farming, levelling) = fleetsById.TryGetValue(id, out var own) ? FleetLevelling.EconomicsHulls(own, rule) : (0, 0);
+            double? perDay = rates is null ? null : rates.SectorsPerDay(farming, levelling) * fuelPerSector;
 
             long? buyable;
             string? buyNote = null;
@@ -288,15 +288,6 @@ public static class FcPointsMath
             else d[f.CharacterName] = f.FcId;
         }
         return d;
-    }
-
-    // counted like the fleet's own figure, per character name, so the FCs add up to the fleet's tank use
-    private static (int Farming, int Levelling) Hulls(IReadOnlyList<FreeCompanyFleet> fleets, EndgameRule rule)
-    {
-        if (rule == EndgameRule.ByRoute)
-            return (FleetLevelling.CountByRoute(fleets, RouteClass.Farming), FleetLevelling.CountByRoute(fleets, RouteClass.Levelling));
-        var at85 = FleetLevelling.CountAt85(fleets);
-        return (at85, FleetLevelling.CountPerCharacter(fleets) - at85);
     }
 
     private static string NameOf(ulong id, AutoRetainerCompany? fc, IReadOnlyList<FreeCompanyFleet>? fleets, List<AutoRetainerCharacter> members)

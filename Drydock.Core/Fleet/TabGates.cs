@@ -175,6 +175,12 @@ public static class TabGates
         return TabGate.Open;
     }
 
+    /// <summary>
+    /// The Restock tab: AutoRetainer for each character's stock, Submarine Tracker for its hulls and the loot the use per
+    /// hull is measured from; the same as the loot gate.
+    /// </summary>
+    public static TabGate Restock(SourceReads s, IReadOnlySet<string> excluded) => Loot(s, excluded);
+
     /// <summary>The Supplies block's line when the ceruleum and kit stock cannot be had (AutoRetainer carries it); null when it can.</summary>
     public static string? SuppliesNote(SourceReads s)
     {

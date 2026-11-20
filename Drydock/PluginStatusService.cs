@@ -135,7 +135,7 @@ internal sealed class PluginStatusService : IDisposable
     private ViewSettings CaptureSettings() => new(
         config.ExcludedCharacters.ToHashSet(StringComparer.Ordinal), config.SilentDays, config.LowCeruleum, config.LowRepairKits, config.RunwayDays,
         config.ResendCadenceHours, config.TargetRank, config.GilTarget, config.FuelPrice, config.KitPrice, config.FuelPerSector, config.KitsPerSector,
-        config.UseMeasuredRates, config.MilestoneStep, config.FcPointsStaleDays);
+        config.UseMeasuredRates, config.MilestoneStep, config.FcPointsStaleDays, config.RestockDays);
 
     private void Start()
     {

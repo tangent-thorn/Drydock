@@ -19,7 +19,8 @@ public sealed record ViewSettings(
     double KitsPerSector,
     bool UseMeasuredRates,
     long MilestoneStep = ProjectionMath.DefaultMilestoneStep,
-    int FcPointsStaleDays = FcPointsMath.DefaultStaleDays)
+    int FcPointsStaleDays = FcPointsMath.DefaultStaleDays,
+    int RestockDays = RestockMath.DefaultDays)
 {
     public WarningThresholds Thresholds => new(SilentDays, LowCeruleum, LowRepairKits, RunwayDays);
 }
@@ -60,7 +61,8 @@ public sealed record SnapshotGates(
     TabGate Projection,
     TabGate Gil,
     TabGate Levelling,
-    TabGate FcPoints);
+    TabGate FcPoints,
+    TabGate Restock);
 
 public sealed record LevellingView(
     LevellingPlan Plan,
@@ -147,6 +149,8 @@ public sealed record StatusSnapshot(long Version, DateOnly Today, SourceInputs I
     public HistoryView? History { get; init; }
     /// <summary>The FC Points tab; null behind a closed FcPoints gate.</summary>
     public FcPointsView? FcPoints { get; init; }
+    /// <summary>The Restock tab; null behind a closed Restock gate.</summary>
+    public RestockView? Restock { get; init; }
     /// <summary>Null behind a closed Ticked gate, where the Overview draws the gate instead.</summary>
     public OverviewView? Overview { get; init; }
 
@@ -196,7 +200,8 @@ public static class SnapshotBuilder
             TabGates.Projection(reads, excluded, economics),
             TabGates.Gil(reads, s.Excluded),
             TabGates.Levelling(reads, excluded, inputs.GameData is not null, inputs.GameDataError),
-            TabGates.FcPoints(reads, s.Excluded));
+            TabGates.FcPoints(reads, s.Excluded),
+            TabGates.Restock(reads, excluded));
 
         var tileEconomics = gates.Loot.IsOpen ? economics : null;
         var backlogReason = TabGates.BacklogReason(results, inputs.Inventory, inputs.AutoRetainer);
@@ -270,6 +275,10 @@ public static class SnapshotBuilder
             Projection = projection,
             History = HistoryOf(inputs, today, g),
             FcPoints = gates.FcPoints.IsOpen ? FcPointsOf(inputs, s, excluded, economics, rates, gates.Production, nowUtc) : null,
+            Restock = gates.Restock.IsOpen && economics is not null
+                ? RestockMath.Compute(tracking!, inputs.Fleet!.Fleets!, excluded, economics.Model, rates.FuelPerSector, rates.KitsPerSector, kitChoice.Price, s.RestockDays,
+                    inputs.Loot!.HasSectors ? EndgameRule.ByRoute : EndgameRule.ByRank85)
+                : null,
             Overview = gates.Ticked.IsOpen
                 ? OverviewCards.Build(subs, farmingCount, tracking, subsView, tileEconomics, tileReason, gates.Gil, holdings, backlogReason, projection?.Result, suppliesNote, warnings, today)
                 : null,

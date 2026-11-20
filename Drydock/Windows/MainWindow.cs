@@ -69,6 +69,7 @@ public sealed class MainWindow : Window
         Tab("Overview", snap, DrawOverview);
         Tab("Fleet", snap, DrawFleet);
         Tab("FC Points", snap, DrawFcPoints);
+        Tab("Restock", snap, DrawRestock);
         Tab("Levelling", snap, DrawLevelling);
         Tab("Salvage", snap, DrawSalvage);
         Tab("Gil", snap, DrawGil);
@@ -885,6 +886,86 @@ public sealed class MainWindow : Window
 
         foreach (var note in FcPointsText.Footnotes(view))
             ImGui.TextDisabled(note);
+    }
+
+    private void DrawRestock(StatusSnapshot snap)
+    {
+        DrawStale(snap, PluginRequirements.AutoRetainer, PluginRequirements.SubmarineTracker, PluginRequirements.CashFlow);
+        if (!DrawGate(snap.Gates.Restock)) return;
+        if (snap.Restock is not { } view)
+        {
+            ImGui.TextDisabled("Reading...");
+            return;
+        }
+
+        ImGui.TextUnformatted(view.Header);
+        if (view.Rows.Count == 0)
+        {
+            ImGui.TextDisabled(RestockMath.NoUse);
+            return;
+        }
+        if (view.StockUnknown) ImGui.TextDisabled(RestockMath.StockNote);
+
+        static string Whole(long? v) => v is { } x ? x.ToString("N0", CultureInfo.InvariantCulture) : "-";
+        static string Rate(double v) => v.ToString("0.0", CultureInfo.InvariantCulture);
+        var copy = CopyButton("restock");
+        using (var table = ImRaii.Table("restock", 9, SortableTable))
+        {
+            if (table)
+            {
+                ImGui.TableSetupColumn("Character", ImGuiTableColumnFlags.WidthStretch, 3);
+                ImGui.TableSetupColumn("World", ImGuiTableColumnFlags.WidthStretch, 2);
+                ImGui.TableSetupColumn("Tanks on hand", ImGuiTableColumnFlags.WidthFixed, S(100));
+                ImGui.TableSetupColumn("Tanks per day", ImGuiTableColumnFlags.WidthFixed | BigFirst, S(100));
+                ImGui.TableSetupColumn("Tanks to buy", ImGuiTableColumnFlags.WidthFixed | BigFirst, S(95));
+                ImGui.TableSetupColumn("Kits on hand", ImGuiTableColumnFlags.WidthFixed, S(90));
+                ImGui.TableSetupColumn("Kits per day", ImGuiTableColumnFlags.WidthFixed | BigFirst, S(90));
+                ImGui.TableSetupColumn("Kits to buy", ImGuiTableColumnFlags.WidthFixed | BigFirst, S(85));
+                ImGui.TableSetupColumn("Kit cost (gil)", ImGuiTableColumnFlags.WidthStretch | BigFirst, 2);
+                ImGui.TableHeadersRow();
+                var rows = Sorted("restock", snap, view.Rows, r => r.Name, r => r.World, r => r.TanksOnHand, r => r.TanksPerDay, r => r.TanksToBuy,
+                    r => r.KitsOnHand, r => r.KitsPerDay, r => r.KitsToBuy, r => r.KitCost);
+                if (copy) ImGui.SetClipboardText(view.CopyText(rows));
+                foreach (var r in rows)
+                {
+                    ImGui.TableNextRow();
+                    ImGui.TableNextColumn();
+                    ImGui.TextUnformatted(r.Name);
+                    ImGui.TableNextColumn();
+                    ImGui.TextUnformatted(r.World);
+                    ImGui.TableNextColumn();
+                    ImGui.TextUnformatted(Whole(r.TanksOnHand));
+                    ImGui.TableNextColumn();
+                    ImGui.TextUnformatted(Rate(r.TanksPerDay));
+                    ImGui.TableNextColumn();
+                    ImGui.TextUnformatted(Whole(r.TanksToBuy));
+                    ImGui.TableNextColumn();
+                    ImGui.TextUnformatted(Whole(r.KitsOnHand));
+                    ImGui.TableNextColumn();
+                    ImGui.TextUnformatted(Rate(r.KitsPerDay));
+                    ImGui.TableNextColumn();
+                    ImGui.TextUnformatted(Whole(r.KitsToBuy));
+                    ImGui.TableNextColumn();
+                    ImGui.TextUnformatted(Whole(r.KitCost));
+                }
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                ImGui.TextUnformatted("Total");
+                ImGui.TableNextColumn();
+                ImGui.TableNextColumn();
+                ImGui.TableNextColumn();
+                ImGui.TextUnformatted(Rate(view.TanksPerDay));
+                ImGui.TableNextColumn();
+                ImGui.TextUnformatted(Whole(view.TanksToBuy));
+                ImGui.TableNextColumn();
+                ImGui.TableNextColumn();
+                ImGui.TextUnformatted(Rate(view.KitsPerDay));
+                ImGui.TableNextColumn();
+                ImGui.TextUnformatted(Whole(view.KitsToBuy));
+                ImGui.TableNextColumn();
+                ImGui.TextUnformatted(Whole(view.KitCost));
+            }
+        }
     }
 
     private static string Range(long lo, long hi, string format) =>

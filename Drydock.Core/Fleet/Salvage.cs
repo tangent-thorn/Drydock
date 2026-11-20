@@ -59,7 +59,11 @@ public sealed record RouteStat(GilRoute Route, int HullsNow, int Voyages30, doub
 /// <param name="SecPerLvl">Sectors per day for one levelling hull.</param>
 /// <param name="CostPerSector">Ceruleum and kits per sector, in gil.</param>
 /// <param name="UpkeepDay">Upkeep per day now.</param>
-public sealed record ModelRates(double PerDay, double PerHull, double SecPerEnd, double SecPerLvl, double CostPerSector, double UpkeepDay);
+public sealed record ModelRates(double PerDay, double PerHull, double SecPerEnd, double SecPerLvl, double CostPerSector, double UpkeepDay)
+{
+    /// <summary>Sectors per day for this many endgame and levelling hulls; over the whole fleet it is the economics' own figure.</summary>
+    public double SectorsPerDay(int endgameHulls, int levellingHulls) => endgameHulls * SecPerEnd + levellingHulls * SecPerLvl;
+}
 
 public sealed record SalvageEconomics(
     long Today,

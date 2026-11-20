@@ -29,6 +29,18 @@ public static class FleetLevelling
     public static int CountByRoute(IReadOnlyList<FreeCompanyFleet> fleets, RouteClass cls) =>
         HullsByCharacter(fleets).Values.Sum(h => h.Values.Count(s => s.RouteClass == cls));
 
+    /// <summary>
+    /// The endgame and levelling hull counts the economics run on, for any subset of the fleets: by route, or rank 85 and
+    /// the rest. Counted per character name, so the counts of disjoint sets of characters add up to the fleet's.
+    /// </summary>
+    public static (int Farming, int Levelling) EconomicsHulls(IReadOnlyList<FreeCompanyFleet> fleets, EndgameRule rule)
+    {
+        if (rule == EndgameRule.ByRoute)
+            return (CountByRoute(fleets, RouteClass.Farming), CountByRoute(fleets, RouteClass.Levelling));
+        var at85 = CountAt85(fleets);
+        return (at85, CountPerCharacter(fleets) - at85);
+    }
+
     /// <summary>Hulls on each gil route right now, keyed by route name, counted per character name.</summary>
     public static IReadOnlyDictionary<string, int> HullsPerGilRoute(IReadOnlyList<FreeCompanyFleet> fleets)
     {

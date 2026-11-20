@@ -3,6 +3,13 @@
 What changed in each release. The section for a version is what shows in
 the plugin installer when you update.
 
+## 1.2.0
+
+- New Restock tab. Per character it shows how many ceruleum tanks and
+  repair kits to buy so its subs last 30 days, with what the kits cost in
+  gil and a total at the bottom. The character running out first is at
+  the top. Change the 30 under Upkeep in settings.
+
 ## 1.1.0
 
 - New FC Points tab. One row per FC with its credits, how many ceruleum
