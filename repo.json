@@ -3,7 +3,7 @@
     "Author": "tangent-thorn",
     "Name": "Drydock",
     "InternalName": "Drydock",
-    "AssemblyVersion": "1.1.0.0",
+    "AssemblyVersion": "1.2.0.0",
     "TestingAssemblyVersion": null,
     "Description": "Keeps track of every sub across all your characters in one window, what's back, what's still levelling, how much salvage and gil you're making, what you're running low on, and how many days of ceruleum your FC credits will buy. Everything stays on your PC.\n\nNeeds AutoRetainer (custom repo: https://love.puni.sh/ment.json) and Submarine Tracker. Allagan Tools and CashFlow are optional, they add the salvage you haven't sold yet and your real repair kit price.",
     "Punchline": "All your subs in one window, what's back, what's still levelling, what you're making and what you're running low on.",
@@ -26,10 +26,10 @@
     "IsHide": false,
     "IsTestingExclusive": false,
     "DownloadCount": 0,
-    "LastUpdate": "1794782680",
-    "DownloadLinkInstall": "https://github.com/tangent-thorn/Drydock/releases/download/v1.1.0/latest.zip",
-    "DownloadLinkTesting": "https://github.com/tangent-thorn/Drydock/releases/download/v1.1.0/latest.zip",
-    "DownloadLinkUpdate": "https://github.com/tangent-thorn/Drydock/releases/download/v1.1.0/latest.zip",
-    "Changelog": "- New FC Points tab. One row per FC with its credits, how many ceruleum\n  tanks they'll buy, and how many days that lasts on what that FC's subs\n  burn now.\n- It also shows the tanks you already have on hand and the days with\n  those added in, and the top line tells you which FC runs out first."
+    "LastUpdate": "1795141584",
+    "DownloadLinkInstall": "https://github.com/tangent-thorn/Drydock/releases/download/v1.2.0/latest.zip",
+    "DownloadLinkTesting": "https://github.com/tangent-thorn/Drydock/releases/download/v1.2.0/latest.zip",
+    "DownloadLinkUpdate": "https://github.com/tangent-thorn/Drydock/releases/download/v1.2.0/latest.zip",
+    "Changelog": "- New Restock tab. Per character it shows how many ceruleum tanks and\n  repair kits to buy so its subs last 30 days, with what the kits cost in\n  gil and a total at the bottom. The character running out first is at\n  the top. Change the 30 under Upkeep in settings."
   }
 ]
