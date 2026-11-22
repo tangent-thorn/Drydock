@@ -3,7 +3,7 @@
     "Author": "tangent-thorn",
     "Name": "Drydock",
     "InternalName": "Drydock",
-    "AssemblyVersion": "1.2.0.0",
+    "AssemblyVersion": "1.2.1.0",
     "TestingAssemblyVersion": null,
     "Description": "Keeps track of every sub across all your characters in one window, what's back, what's still levelling, how much salvage and gil you're making, what you're running low on, and how many days of ceruleum your FC credits will buy. Everything stays on your PC.\n\nNeeds AutoRetainer (custom repo: https://love.puni.sh/ment.json) and Submarine Tracker. Allagan Tools and CashFlow are optional, they add the salvage you haven't sold yet and your real repair kit price.",
     "Punchline": "All your subs in one window, what's back, what's still levelling, what you're making and what you're running low on.",
@@ -26,10 +26,10 @@
     "IsHide": false,
     "IsTestingExclusive": false,
     "DownloadCount": 0,
-    "LastUpdate": "1795141584",
-    "DownloadLinkInstall": "https://github.com/tangent-thorn/Drydock/releases/download/v1.2.0/latest.zip",
-    "DownloadLinkTesting": "https://github.com/tangent-thorn/Drydock/releases/download/v1.2.0/latest.zip",
-    "DownloadLinkUpdate": "https://github.com/tangent-thorn/Drydock/releases/download/v1.2.0/latest.zip",
-    "Changelog": "- New Restock tab. Per character it shows how many ceruleum tanks and\n  repair kits to buy so its subs last 30 days, with what the kits cost in\n  gil and a total at the bottom. The character running out first is at\n  the top. Change the 30 under Upkeep in settings."
+    "LastUpdate": "1795327816",
+    "DownloadLinkInstall": "https://github.com/tangent-thorn/Drydock/releases/download/v1.2.1/latest.zip",
+    "DownloadLinkTesting": "https://github.com/tangent-thorn/Drydock/releases/download/v1.2.1/latest.zip",
+    "DownloadLinkUpdate": "https://github.com/tangent-thorn/Drydock/releases/download/v1.2.1/latest.zip",
+    "Changelog": "- The top line on FC Points now counts the tanks you have on hand, so it\n  tells you which FC actually runs out first instead of whichever has the\n  fewest credits.\n- Hover the Characters column on FC Points to see the full list when it\n  gets cut off."
   }
 ]
