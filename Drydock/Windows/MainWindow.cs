@@ -856,7 +856,10 @@ public sealed class MainWindow : Window
                     ImGui.TableNextColumn();
                     ImGui.TextUnformatted(r.Name);
                     ImGui.TableNextColumn();
-                    ImGui.TextUnformatted(FcPointsText.Members(r));
+                    var members = FcPointsText.Members(r);
+                    var clipped = ImGui.CalcTextSize(members).X > ImGui.GetContentRegionAvail().X;
+                    ImGui.TextUnformatted(members);
+                    if (clipped && ImGui.IsItemHovered()) ImGui.SetTooltip(members);
                     ImGui.TableNextColumn();
                     var rankCell = FcPointsText.Rank(r, view.RankNeeded);
                     if (r.RankBlocked)

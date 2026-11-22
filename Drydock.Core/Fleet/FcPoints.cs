@@ -68,8 +68,10 @@ public sealed record FcPointsRow(
 /// <param name="TanksBuyable">Over the FCs that have a figure.</param>
 /// <param name="TanksPerDay">Null without the economics.</param>
 /// <param name="TanksOnHand">Over the FCs with a member that counts for stock; null when one of them is unknown.</param>
-/// <param name="ShortestDays">The fewest days the credits last across the FCs that run subs; null when none has a figure.</param>
+/// <param name="ShortestDays">The fewest days with stock across the FCs that run subs and can buy; when none has that
+/// figure, the fewest days from credits alone; null when none has either.</param>
 /// <param name="ShortestName">That FC's name.</param>
+/// <param name="ShortestWithStock">True when <see cref="ShortestDays"/> counts the tanks on hand.</param>
 public sealed record FcPointsTotals(
     long Points,
     int PointsUnknown,
@@ -78,7 +80,8 @@ public sealed record FcPointsTotals(
     int? TanksOnHand,
     double? ShortestDays,
     ulong? ShortestId,
-    string? ShortestName);
+    string? ShortestName,
+    bool ShortestWithStock = false);
 
 /// <param name="Rows">One per FC the ticked characters belong to, ordered by name.</param>
 /// <param name="OldCompanies">AutoRetainer FC entries no character belongs to any more; not rows.</param>
@@ -243,7 +246,9 @@ public static class FcPointsMath
         });
 
         // an FC below the rank cannot buy at all: its 0 days is not a shortfall the credits could fix
-        var shortest = rows.Where(r => r.RunsSubs && r.DaysFromPoints.HasValue && !r.RankBlocked).OrderBy(r => r.DaysFromPoints).FirstOrDefault();
+        var canRunOut = rows.Where(r => r.RunsSubs && !r.RankBlocked).ToList();
+        var firstOut = canRunOut.Where(r => r.DaysWithStock.HasValue).MinBy(r => r.DaysWithStock);
+        var shortest = firstOut ?? canRunOut.Where(r => r.DaysFromPoints.HasValue).MinBy(r => r.DaysFromPoints);
         var stockRows = rows.Where(r => stockedRows.Contains(r.Id)).ToList();
         var totals = new FcPointsTotals(
             rows.Sum(r => r.Points ?? 0),
@@ -251,9 +256,10 @@ public static class FcPointsMath
             rows.Sum(r => r.TanksBuyable ?? 0),
             rates is null ? null : rows.Sum(r => r.TanksPerDay ?? 0),
             stockRows.Count > 0 && stockRows.All(r => r.TanksOnHand.HasValue) ? stockRows.Sum(r => r.TanksOnHand!.Value) : null,
-            shortest?.DaysFromPoints,
+            firstOut?.DaysWithStock ?? shortest?.DaysFromPoints,
             shortest?.Id,
-            shortest?.Name);
+            shortest?.Name,
+            firstOut is not null);
         return new FcPointsView(rows, totals, old, companies is not null, price, rankNeeded, staleDays, rates is null ? daysUnavailable ?? "no tank use figure yet" : null, unmatched);
     }
 

@@ -3,6 +3,14 @@
 What changed in each release. The section for a version is what shows in
 the plugin installer when you update.
 
+## 1.2.1
+
+- The top line on FC Points now counts the tanks you have on hand, so it
+  tells you which FC actually runs out first instead of whichever has the
+  fewest credits.
+- Hover the Characters column on FC Points to see the full list when it
+  gets cut off.
+
 ## 1.2.0
 
 - New Restock tab. Per character it shows how many ceruleum tanks and

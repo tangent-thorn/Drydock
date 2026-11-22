@@ -79,7 +79,8 @@ public static class FcPointsText
             $"{N0(t.TanksBuyable)} tanks buyable",
         };
         if (t.TanksPerDay is { } perDay) parts.Add(perDay.ToString("0.0", CultureInfo.InvariantCulture) + " tanks a day");
-        if (t.ShortestDays is { } days && t.ShortestName is { } name) parts.Add($"shortest: {name} at {Days(days)}d");
+        if (t.ShortestDays is { } days && t.ShortestName is { } name)
+            parts.Add(t.ShortestWithStock ? $"runs out first: {name} in {Days(days)}d" : $"shortest: {name} at {Days(days)}d");
         return string.Join(", ", parts);
     }
 
